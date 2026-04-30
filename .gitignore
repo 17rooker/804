@@ -1,0 +1,31 @@
+# Build outputs
+debug/
+release/
+bin/Restricting_Release_Control.exe
+bin/logs/
+*.o
+*.obj
+*.exe
+
+# Qt generated
+Makefile
+Makefile.Debug
+Makefile.Release
+.qmake.stash
+object_script.*
+ui_*.h
+*.pro.user
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+Thumbs.db
+.DS_Store
+
+# Third-party headers (too large, fetch separately)
+thirdParty/
+include/
