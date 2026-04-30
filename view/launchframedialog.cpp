@@ -286,32 +286,6 @@ void FrameDataWorker::paramProcess(STParamInfo &m_param, QMap<QString, bool> &m_
             m_editValues["帧计数3"] =  QString::number(rawValue);
             m_editValues["帧计数4"] =  QString::number(rawValue);
         }
-        else if(mapIt.key()=="FrameType")
-        {
-            quint8 rawValue = 0;
-            if (item.varParaValue.canConvert<quint8>()) {
-                rawValue = item.varParaValue.value<quint8>();
-            }
-
-            // 根据字节值匹配帧类型
-            QString frameType;
-            switch (rawValue) {
-            case 0x01:
-                frameType = "终端";
-                break;
-            case 0x02:
-                frameType = "串口服务器";
-                break;
-            default:
-                frameType = "未知帧类型";
-                break;
-            }
-
-            // 存入状态字典
-            m_editValues["帧类型_值"] = QString(rawValue);
-            m_editValues["帧类型"] = QString(rawValue);
-            m_editValues["时序_帧类型"] =frameType;
-        }
         else if(mapIt.key()=="TimeFlag")
         {
             // 4字节时间标志，上电计数，单位1ms
@@ -738,6 +712,35 @@ void FrameDataWorker::paramProcess(STParamInfo &m_param, QMap<QString, bool> &m_
             m_ledStates["SFH3_7.2"] = sfh1_7_2_3;
             m_ledStates["SFH3_7.1"] = sfh1_7_1_3;
         }
+        else if(mapIt.key()=="CommandCodeHigh")
+        {
+            quint8 rawValue = 0;
+            if (item.varParaValue.canConvert<quint8>())
+                rawValue = item.varParaValue.value<quint8>();
+            m_editValues["指令码高8位"] = QString::number(rawValue, 16).toUpper();
+        }
+        else if(mapIt.key()=="CommandCodeLow")
+        {
+            quint8 rawValue = 0;
+            if (item.varParaValue.canConvert<quint8>())
+                rawValue = item.varParaValue.value<quint8>();
+            m_editValues["指令码低8位"] = QString::number(rawValue, 16).toUpper();
+        }
+        else if(mapIt.key()=="CommandOperateReq")
+        {
+            quint8 rawValue = 0;
+            if (item.varParaValue.canConvert<quint8>())
+                rawValue = item.varParaValue.value<quint8>();
+            m_editValues["操作要求"] = QString::number(rawValue);
+        }
+        else if(mapIt.key()=="ParamBindingStatus")
+        {
+            quint8 rawValue = 0;
+            if (item.varParaValue.canConvert<quint8>())
+                rawValue = item.varParaValue.value<quint8>();
+            m_editValues["参数绑定状态"] = QString::number(rawValue, 16).toUpper();
+        }
+
         else if(mapIt.key()=="Mechanism1UnlockTime")
         {
             // 2字节采集值，高字节在前，低字节在后
