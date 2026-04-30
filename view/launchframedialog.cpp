@@ -71,10 +71,11 @@ void FrameDataWorker::processData(const QByteArray &data)
 {
     QByteArray buf = data;
     const int MAX_FRAMES = 100;
+    const int EMIT_INTERVAL = 5;
     int framesProcessed = 0;
 
-    QMap<QString, bool> mergedLedStates;
-    QMap<QString, QString> mergedEditValues;
+    QMap<QString, bool> lastLed;
+    QMap<QString, QString> lastEdit;
 
     while (buf.size() >= 8 && framesProcessed < MAX_FRAMES) {
         // 1. 校验帧头
@@ -118,17 +119,17 @@ void FrameDataWorker::processData(const QByteArray &data)
         QMap<QString, QString> editValues;
         paramProcess(param, ledStates, editValues);
 
-        // 合并：后面帧覆盖前面帧的同名 key
-        for (auto it = ledStates.cbegin(); it != ledStates.cend(); ++it)
-            mergedLedStates[it.key()] = it.value();
-        for (auto it = editValues.cbegin(); it != editValues.cend(); ++it)
-            mergedEditValues[it.key()] = it.value();
+        lastLed = ledStates;
+        lastEdit = editValues;
+
+        if (framesProcessed % EMIT_INTERVAL == 0)
+            emit dataProcessed(lastLed, lastEdit);
 
         ++framesProcessed;
     }
 
-    if (framesProcessed > 0)
-        emit dataProcessed(mergedLedStates, mergedEditValues);
+    if (framesProcessed > 0 && framesProcessed % EMIT_INTERVAL != 0)
+        emit dataProcessed(lastLed, lastEdit);
 }
 
 void FrameDataWorker::processData_sel( STParamInfo &param)
