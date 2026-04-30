@@ -1,115 +1,206 @@
-#include "remotesettingwidget.h" // 对应的头文件
+#include "remotesettingwidget.h"
 
-// --- 必须包含的头文件 ---
-#include <QLineEdit>
-#include <QPushButton>
 #include <QLabel>
+#include <QPushButton>
+#include <QLineEdit>
 #include <QGridLayout>
 #include <QHBoxLayout>
+#include <QVBoxLayout>
 #include <QGroupBox>
-#include <QFileDialog>   // 用于文件对话框
-#include <QDir>          // 用于路径处理
-#include <QStyle>        // 【关键修复】用于 QStyle::SP_DirIcon
-#include <QIntValidator> // 用于端口号输入限制
+#include <QFileDialog>
+#include <QDir>
+#include <QStyle>
+#include <QIntValidator>
+#include <QMessageBox>
+
+#include "src/Common/ConfigHelper.h"
+#include "src/Common/CommTypes.h"
+#include "src/CommManager.h"
 
 RemoteSettingWidget::RemoteSettingWidget(QWidget *parent) : QWidget(parent)
 {
     setupUI();
+    loadConfig();
 }
 
 RemoteSettingWidget::~RemoteSettingWidget()
 {
-    // 析构函数，Qt会自动清理子控件
+}
+
+void RemoteSettingWidget::loadConfig()
+{
+    ConfigHelper& cfg = ConfigHelper::getInstance();
+
+    m_editServerIp->setText(
+        cfg.getValue("Communication/TCP_IP_ServerRemote", "127.0.0.1").toString());
+    m_editServerPort->setText(
+        cfg.getValue("Communication/TCP_Port_ServerRemote", "7008").toString());
+    m_editMcastIp->setText(
+        cfg.getValue("Communication/UDPGroup_IP_ServerRemote", "224.168.0.40").toString());
+    m_editMcastPort->setText(
+        cfg.getValue("Communication/UDPGroup_Port_ServerRemote", "16040").toString());
+    m_editDataPath->setText(
+        cfg.getValue("Storage/DataPath", "D:/数据").toString());
 }
 
 void RemoteSettingWidget::setupUI()
 {
-    // --- 1. 主布局 ---
-    // 使用垂直布局包裹所有内容，并设置外边距
     QVBoxLayout *mainLayout = new QVBoxLayout(this);
     mainLayout->setContentsMargins(15, 15, 15, 15);
     mainLayout->setSpacing(15);
 
-    // --- 2. 顶部参数设置区域 (Group Box) ---
-    QGroupBox *groupParam = new QGroupBox("网络参数设置", this);
-    QGridLayout *gridLayout = new QGridLayout(groupParam);
-    gridLayout->setHorizontalSpacing(15);
-    gridLayout->setVerticalSpacing(10);
-    gridLayout->setContentsMargins(15, 20, 15, 15);
+    // ── TCP参数设置 ──
+    QGroupBox *groupTcp = new QGroupBox("TCP 远程服务器");
+    QGridLayout *tcpGrid = new QGridLayout(groupTcp);
+    tcpGrid->setHorizontalSpacing(10);
+    tcpGrid->setVerticalSpacing(8);
+    tcpGrid->setContentsMargins(10, 20, 10, 10);
 
-    // 创建控件
-    QLabel *lblServerIp = new QLabel("服务器IP地址");
-    QLabel *lblServerPort = new QLabel("服务器侦听端口");
+    QLabel *lblTcpIp = new QLabel("服务器IP地址");
+    QLabel *lblTcpPort = new QLabel("服务器端口");
+    m_editServerIp = new QLineEdit;
+    m_editServerPort = new QLineEdit;
+    m_editServerPort->setValidator(new QIntValidator(1, 65535, this));
+    m_editServerIp->setFixedWidth(130);
+    m_editServerPort->setFixedWidth(100);
+    m_btnApplyTcp = new QPushButton("应用");
+    m_btnApplyTcp->setFixedWidth(60);
+
+    tcpGrid->addWidget(lblTcpIp, 0, 0);
+    tcpGrid->addWidget(m_editServerIp, 0, 1);
+    tcpGrid->addWidget(lblTcpPort, 0, 2);
+    tcpGrid->addWidget(m_editServerPort, 0, 3);
+    tcpGrid->addWidget(m_btnApplyTcp, 0, 4);
+
+    // ── UDP组播参数设置 ──
+    QGroupBox *groupUdp = new QGroupBox("UDP 组播");
+    QGridLayout *udpGrid = new QGridLayout(groupUdp);
+    udpGrid->setHorizontalSpacing(10);
+    udpGrid->setVerticalSpacing(8);
+    udpGrid->setContentsMargins(10, 20, 10, 10);
+
     QLabel *lblMcastIp = new QLabel("组播地址");
     QLabel *lblMcastPort = new QLabel("组播端口");
-
-    m_editServerIp = new QLineEdit("192.168.0.49");
-    m_editServerPort = new QLineEdit("7006");
-    m_editMcastIp = new QLineEdit("224.168.0.23");
-    m_editMcastPort = new QLineEdit("16023");
-
-    // 端口号限制 (1-65535)
-    m_editServerPort->setValidator(new QIntValidator(1, 65535, this));
+    m_editMcastIp = new QLineEdit;
+    m_editMcastPort = new QLineEdit;
     m_editMcastPort->setValidator(new QIntValidator(1, 65535, this));
+    m_editMcastIp->setFixedWidth(130);
+    m_editMcastPort->setFixedWidth(100);
+    m_btnApplyUdp = new QPushButton("应用");
+    m_btnApplyUdp->setFixedWidth(60);
 
-    // 设置固定宽度以保持对齐美观
-    m_editServerIp->setFixedWidth(120);
-    m_editServerPort->setFixedWidth(120);
-    m_editMcastIp->setFixedWidth(120);
-    m_editMcastPort->setFixedWidth(120);
+    udpGrid->addWidget(lblMcastIp, 0, 0);
+    udpGrid->addWidget(m_editMcastIp, 0, 1);
+    udpGrid->addWidget(lblMcastPort, 0, 2);
+    udpGrid->addWidget(m_editMcastPort, 0, 3);
+    udpGrid->addWidget(m_btnApplyUdp, 0, 4);
 
-    // 将控件添加到网格布局
-    gridLayout->addWidget(lblServerIp, 0, 0, Qt::AlignLeft);
-    gridLayout->addWidget(m_editServerIp, 0, 1, Qt::AlignLeft);
-    gridLayout->addWidget(lblServerPort, 0, 2, Qt::AlignLeft);
-    gridLayout->addWidget(m_editServerPort, 0, 3, Qt::AlignLeft);
-
-    gridLayout->addWidget(lblMcastIp, 1, 0, Qt::AlignLeft);
-    gridLayout->addWidget(m_editMcastIp, 1, 1, Qt::AlignLeft);
-    gridLayout->addWidget(lblMcastPort, 1, 2, Qt::AlignLeft);
-    gridLayout->addWidget(m_editMcastPort, 1, 3, Qt::AlignLeft);
-
-    // --- 3. 底部存储路径区域 ---
-    QGroupBox *groupPath = new QGroupBox("数据存储路径", this);
+    // ── 数据存储路径 ──
+    QGroupBox *groupPath = new QGroupBox("数据存储路径");
     QHBoxLayout *pathLayout = new QHBoxLayout(groupPath);
-    pathLayout->setContentsMargins(15, 20, 15, 15);
+    pathLayout->setContentsMargins(10, 20, 10, 10);
 
-    m_editDataPath = new QLineEdit("D:/数据"); // 默认路径
-    m_btnBrowse = new QPushButton();
-
-    // 设置浏览按钮图标 (使用系统标准文件夹图标)
+    m_editDataPath = new QLineEdit;
+    m_btnBrowse = new QPushButton;
     m_btnBrowse->setIcon(style()->standardIcon(QStyle::SP_DirIcon));
     m_btnBrowse->setToolTip("选择文件夹");
-    m_btnBrowse->setFixedSize(30, 25); // 固定按钮大小
+    m_btnBrowse->setFixedSize(30, 25);
 
-    // 连接信号槽
-    connect(m_btnBrowse, &QPushButton::clicked, this, &RemoteSettingWidget::onBrowseFolder);
-
-    // 将路径输入框和按钮加入布局
     pathLayout->addWidget(m_editDataPath);
     pathLayout->addWidget(m_btnBrowse);
 
-    // --- 4. 将所有组件加入主布局 ---
-    mainLayout->addWidget(groupParam);
+    // ── 加入主布局 ──
+    mainLayout->addWidget(groupTcp);
+    mainLayout->addWidget(groupUdp);
     mainLayout->addWidget(groupPath);
-    mainLayout->addStretch(); // 底部留白，将内容顶上去
+    mainLayout->addStretch();
+
+    // ── 信号连接 ──
+    connect(m_btnBrowse, &QPushButton::clicked, this, &RemoteSettingWidget::onBrowseFolder);
+    connect(m_btnApplyTcp, &QPushButton::clicked, this, &RemoteSettingWidget::onApplyTcp);
+    connect(m_btnApplyUdp, &QPushButton::clicked, this, &RemoteSettingWidget::onApplyUdp);
 }
 
 void RemoteSettingWidget::onBrowseFolder()
 {
-    // 获取当前路径作为起始目录
     QString currentPath = m_editDataPath->text();
-    if (currentPath.isEmpty() || !QDir(currentPath).exists()) {
-        currentPath = QDir::homePath(); // 如果路径无效，默认到用户主目录
-    }
+    if (currentPath.isEmpty() || !QDir(currentPath).exists())
+        currentPath = QDir::homePath();
 
-    // 打开文件夹选择对话框
     QString dir = QFileDialog::getExistingDirectory(this, tr("选择数据存储文件夹"),
                                                     currentPath,
                                                     QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks);
-
-    // 如果用户选择了有效路径，则更新输入框
     if (!dir.isEmpty()) {
         m_editDataPath->setText(dir);
+        ConfigHelper::getInstance().setValue("Storage/DataPath", dir);
     }
+}
+
+void RemoteSettingWidget::onApplyTcp()
+{
+    QString ip   = m_editServerIp->text().trimmed();
+    QString port = m_editServerPort->text().trimmed();
+
+    if (ip.isEmpty() || port.isEmpty()) {
+        QMessageBox::warning(this, "参数错误", "请填写完整的TCP服务器IP和端口");
+        return;
+    }
+    bool ok = false;
+    quint16 portNum = port.toUShort(&ok);
+    if (!ok || portNum == 0) {
+        QMessageBox::warning(this, "参数错误", "端口号格式无效（1~65535）");
+        return;
+    }
+
+    ConfigHelper& cfg = ConfigHelper::getInstance();
+    cfg.setValue("Communication/TCP_IP_ServerRemote", ip);
+    cfg.setValue("Communication/TCP_Port_ServerRemote", portNum);
+
+    QString channelId = cfg.getValue("Communication/TCP_Name_ServerRemote", "tcp_device_serverRemote").toString();
+
+    TcpConfig tcpCfg;
+    tcpCfg.host = ip;
+    tcpCfg.port = portNum;
+    tcpCfg.autoReconnect = true;
+    tcpCfg.reconnectIntervalMs = 3000;
+    tcpCfg.connectTimeoutMs = 5000;
+
+    if (CommManager::instance().updateTcpChannel(channelId, tcpCfg))
+        QMessageBox::information(this, "提示", "TCP配置已应用");
+    else
+        QMessageBox::warning(this, "错误", "TCP配置更新失败，请检查通道名称");
+}
+
+void RemoteSettingWidget::onApplyUdp()
+{
+    QString ip   = m_editMcastIp->text().trimmed();
+    QString port = m_editMcastPort->text().trimmed();
+
+    if (ip.isEmpty() || port.isEmpty()) {
+        QMessageBox::warning(this, "参数错误", "请填写完整的组播地址和端口");
+        return;
+    }
+    bool ok = false;
+    quint16 portNum = port.toUShort(&ok);
+    if (!ok || portNum == 0) {
+        QMessageBox::warning(this, "参数错误", "端口号格式无效（1~65535）");
+        return;
+    }
+
+    ConfigHelper& cfg = ConfigHelper::getInstance();
+    cfg.setValue("Communication/UDPGroup_IP_ServerRemote", ip);
+    cfg.setValue("Communication/UDPGroup_Port_ServerRemote", portNum);
+
+    QString channelId = cfg.getValue("Communication/UDPGroup_Name_ServerRemote", "udp_multicast_groupRemote").toString();
+
+    UdpMulticastConfig udpCfg;
+    udpCfg.multicastGroup = ip;
+    udpCfg.port = portNum;
+    udpCfg.listenAddr = "0.0.0.0";
+    udpCfg.ttl = 1;
+
+    if (CommManager::instance().updateUdpMulticastChannel(channelId, udpCfg))
+        QMessageBox::information(this, "提示", "UDP组播配置已应用");
+    else
+        QMessageBox::warning(this, "错误", "UDP配置更新失败，请检查通道名称");
 }

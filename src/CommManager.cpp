@@ -143,6 +143,38 @@ bool CommManager::updateTcpChannel(const QString& channelId, const TcpConfig& ne
 }
 
 // ─────────────────────────────────────────────
+//  UDP组播通道管理（新增）
+// ─────────────────────────────────────────────
+bool CommManager::removeUdpMulticastChannel(const QString& channelId)
+{
+    std::lock_guard<std::mutex> lock(m_channelsMtx);
+    auto it = m_channels.find(channelId);
+    if (it == m_channels.end()) {
+        qWarning() << "[CommManager] removeUdpMulticastChannel: not found -" << channelId;
+        return false;
+    }
+    if (it->second->channelType() != EChannelType::UDP_Multicast) {
+        qWarning() << "[CommManager] removeUdpMulticastChannel: not a UDP channel -" << channelId;
+        return false;
+    }
+    it->second->stop();
+    m_channels.erase(it);
+    qInfo() << "[CommManager] UDP channel removed -" << channelId;
+    return true;
+}
+
+bool CommManager::updateUdpMulticastChannel(const QString& channelId, const UdpMulticastConfig& newConfig)
+{
+    removeUdpMulticastChannel(channelId);
+    bool ret = addUdpMulticastChannel(channelId, newConfig);
+    if (ret)
+        qInfo() << "[CommManager] UDP channel updated -" << channelId;
+    else
+        qWarning() << "[CommManager] Failed to update UDP channel -" << channelId;
+    return ret;
+}
+
+// ─────────────────────────────────────────────
 //  串口通道管理
 // ─────────────────────────────────────────────
 bool CommManager::removeSerialChannel(const QString& channelId)

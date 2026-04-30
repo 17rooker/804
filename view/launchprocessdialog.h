@@ -4,6 +4,7 @@
 #include <QDialog>
 #include <QTimer>
 #include <QDateTime>
+#include <QTextEdit>
 #include <qlabel.h>
 // 新增引入自定义控件头文件
 #include "styledledlabel.h"
@@ -104,6 +105,7 @@ private:
 
     QMap<QString, StyledLedLabel*> m_ledMap;      // LED名称 -> LED控件映射
     QMap<QString, StyledLineEdit*> m_valueMap;
+    QTextEdit *m_logText = nullptr;
 };
 
 #endif // LAUNCHPROCESSDIALOG_H

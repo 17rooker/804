@@ -4,6 +4,7 @@
 #include <QMainWindow>
 #include <QTimer>
 #include <QDateTime>
+#include <QTextEdit>
 #include "view/controllerpanel.h"
 #include "view/datastruct.h"
 #include "view/ledindicator.h"
@@ -15,6 +16,7 @@
 #include "view/emissiontab.h"
 
 #include "src/DataProcess/DataAnalysis/FrameDataAnalysis.h"
+#include "src/Common/CommTypes.h"
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
@@ -51,6 +53,7 @@ private:
     QTimer *m_timerTest;      // 测试计时器
     int m_testSeconds;        // 测试秒数计数
     QLabel *m_lblCecLight;
+    QTextEdit *m_logText = nullptr;
 
     // 新增：全局唯一的422指令弹窗实例
     Controller422Dialog *m_controller422Dialog;

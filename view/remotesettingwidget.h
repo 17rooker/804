@@ -15,10 +15,13 @@ public:
     ~RemoteSettingWidget();
 
 private slots:
-    void onBrowseFolder(); // 槽函数：处理文件夹选择
+    void onBrowseFolder();          // 选择数据存储路径
+    void onApplyTcp();              // 应用TCP配置
+    void onApplyUdp();              // 应用UDP组播配置
 
 private:
-    void setupUI(); // 构建界面
+    void setupUI();                 // 构建界面
+    void loadConfig();              // 从Info.ini加载当前值
 
     // 控件指针
     QLineEdit *m_editServerIp;
@@ -27,6 +30,8 @@ private:
     QLineEdit *m_editMcastPort;
     QLineEdit *m_editDataPath;
     QPushButton *m_btnBrowse;
+    QPushButton *m_btnApplyTcp;
+    QPushButton *m_btnApplyUdp;
 };
 
 #endif // REMOTESETTINGWIDGET_H

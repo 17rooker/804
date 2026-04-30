@@ -1,6 +1,7 @@
 #include "launchprocessdialog.h"
 #include <QGridLayout>
 #include <QHBoxLayout>
+#include <QMenu>
 #include <QVBoxLayout>
 #include <QLabel>
 #include <QGroupBox>
@@ -18,7 +19,9 @@
 #include "src/CustomMessage/DataInteractionManager.h"
 #include "src/Common/LoggerManager.h"
 #include "src/StyleEventFilter.h"
+#include "src/CommManager.h"
 #include "InitiativeMsgEvent.h"
+#include "src/Common/ConfigHelper.h"
 double FrameDatWorker::calculateCoeff(double x, int row, int col)
 {
     // 1. 构建配置文件路径：运行目录/config/coeff_config.ini
@@ -1380,6 +1383,32 @@ LaunchProcessDialog::LaunchProcessDialog(QWidget *parent)
 
     connect(m_updateTimer, &QTimer::timeout, this, &LaunchProcessDialog::onTimerTimeout);
 
+    // 监听测发控TCP连接状态（仅在状态切换时打印日志）
+    QString tcpChannelId = ConfigHelper::getInstance().getValue("Communication/TCP_Name_ServerRemote", "tcp_device_serverRemote").toString();
+    connect(&CommManager::instance(), &CommManager::channelStateChanged,
+        this, [tcpChannelId, this](const QString& channelId, EChannelState state) {
+            if (channelId != tcpChannelId) return;
+            static EChannelState prevState = EChannelState::Disconnected;
+            QString timeStr = QDateTime::currentDateTime().toString("yyyy-MM-dd hh:mm:ss");
+            if (state == EChannelState::Connected && prevState != EChannelState::Connected) {
+                if (m_logText) m_logText->append(QString("[%1] 与测发控建立连接").arg(timeStr));
+            } else if ((state == EChannelState::Disconnected || state == EChannelState::Error) && prevState == EChannelState::Connected) {
+                if (m_logText) m_logText->append(QString("[%1] 与测发控断开连接").arg(timeStr));
+            }
+            prevState = state;
+        });
+
+    // 运控记录支持右键清除
+    if (m_logText) {
+        m_logText->setContextMenuPolicy(Qt::CustomContextMenu);
+        connect(m_logText, &QWidget::customContextMenuRequested, this, [this](const QPoint& pos) {
+            QMenu menu;
+            menu.addAction("清除记录", this, [this]() {
+                if (m_logText) m_logText->clear();
+            });
+            menu.exec(m_logText->mapToGlobal(pos));
+        });
+    }
 }
 
 LaunchProcessDialog::~LaunchProcessDialog() {
@@ -1665,10 +1694,10 @@ void LaunchProcessDialog::setupUI()
 
     QGroupBox *grpRecord = new QGroupBox("远控记录");
     QVBoxLayout *layRecord = new QVBoxLayout(grpRecord);
-    QTextEdit *textRecord = new QTextEdit();
-    textRecord->setReadOnly(true);
-    textRecord->setStyleSheet("background: white; color: black;");
-    layRecord->addWidget(textRecord);
+    m_logText = new QTextEdit();
+    m_logText->setReadOnly(true);
+    m_logText->setStyleSheet("background: white; color: black;");
+    layRecord->addWidget(m_logText);
 
     rightTopLayout->addWidget(frameTime);
     rightTopLayout->addWidget(grpRecord);

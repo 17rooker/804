@@ -1,8 +1,9 @@
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
 #include "view/controllerpanel.h"
-
+#include "src/CommManager.h"
 #include <QHBoxLayout>
+#include <QMenu>
 #include <QVBoxLayout>
 #include <QLabel>
 #include <QPushButton>
@@ -142,11 +143,11 @@ void MainWindow::initUi()
     cecLayout->setSpacing(5);
     QLabel *lblCEC = new QLabel("测发控", topBar);
     lblCEC->setStyleSheet("color: white; font-size: 14px; font-family: 'SimHei';");
-    QLabel *lblCECLight = new QLabel(topBar);
-    lblCECLight->setFixedSize(12, 12);
-    lblCECLight->setStyleSheet("border-radius: 6px; background-color: #00FF00; border: 1px solid white;");
+    m_lblCecLight = new QLabel(topBar);
+    m_lblCecLight->setFixedSize(12, 12);
+    m_lblCecLight->setStyleSheet("border-radius: 6px; background-color: #888888; border: 1px solid white;");
     cecLayout->addWidget(lblCEC);
-    cecLayout->addWidget(lblCECLight);
+    cecLayout->addWidget(m_lblCecLight);
 
     // 2. 机构准备好状态
     QHBoxLayout *readyLayout = new QHBoxLayout();
@@ -272,10 +273,10 @@ void MainWindow::initUi()
     logTitle->setFont(QFont("SimHei", 11, QFont::Bold));
     logTitle->setStyleSheet("background-color: #DDDDDD;"); // 标题背景
 
-    QTextEdit *logText = new QTextEdit(logFrame);
-    logText->setReadOnly(true);
-    logText->setFont(QFont("Consolas", 9));
-    logText->append("[周三 4月 8 14:17:42 2026] 系统启动...");
+    m_logText = new QTextEdit(logFrame);
+    m_logText->setReadOnly(true);
+    m_logText->setFont(QFont("Consolas", 9));
+    m_logText->append("[系统启动]");
 
     QPushButton *launchBtn = new QPushButton("发射界面", logFrame);
     launchBtn->setFixedHeight(40);
@@ -289,7 +290,7 @@ void MainWindow::initUi()
     });
 
     logLayout->addWidget(logTitle);
-    logLayout->addWidget(logText);
+    logLayout->addWidget(m_logText);
     logLayout->addWidget(launchBtn);
 
     centerLayout->addWidget(logFrame, 1);
@@ -314,4 +315,34 @@ void MainWindow::initUi()
     m_timerTest = new QTimer(this);
     connect(m_timerTest, &QTimer::timeout, this, &MainWindow::updateTestData);
     m_timerTest->start(1000);
+
+    // 监听测发控TCP连接状态（仅在状态切换时打印日志）
+    QString tcpChannelId = ConfigHelper::getInstance().getValue("Communication/TCP_Name_ServerRemote", "tcp_device_serverRemote").toString();
+    connect(&CommManager::instance(), &CommManager::channelStateChanged,
+        this, [this, tcpChannelId](const QString& channelId, EChannelState state) {
+            if (channelId != tcpChannelId) return;
+            static EChannelState prevState = EChannelState::Disconnected;
+
+            QString timeStr = QDateTime::currentDateTime().toString("yyyy-MM-dd hh:mm:ss");
+            if (state == EChannelState::Connected && prevState != EChannelState::Connected) {
+                m_lblCecLight->setStyleSheet("border-radius: 6px; background-color: #00FF00; border: 1px solid white;");
+                if (m_logText) m_logText->append(QString("[%1] 与测发控建立连接").arg(timeStr));
+            } else if ((state == EChannelState::Disconnected || state == EChannelState::Error) && prevState == EChannelState::Connected) {
+                m_lblCecLight->setStyleSheet("border-radius: 6px; background-color: #888888; border: 1px solid white;");
+                if (m_logText) m_logText->append(QString("[%1] 与测发控断开连接").arg(timeStr));
+            }
+            prevState = state;
+        });
+
+    // 运控记录支持右键清除
+    if (m_logText) {
+        m_logText->setContextMenuPolicy(Qt::CustomContextMenu);
+        connect(m_logText, &QWidget::customContextMenuRequested, this, [this](const QPoint& pos) {
+            QMenu menu;
+            menu.addAction("清除记录", this, [this]() {
+                if (m_logText) m_logText->clear();
+            });
+            menu.exec(m_logText->mapToGlobal(pos));
+        });
+    }
 }

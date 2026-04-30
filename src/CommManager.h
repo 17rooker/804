@@ -64,6 +64,10 @@ public:
     // 更新TCP通道配置（原子操作）
     bool updateTcpChannel(const QString& channelId, const TcpConfig& newConfig);
 
+    // ── UDP组播通道管理（新增）────────────────────
+    bool removeUdpMulticastChannel(const QString& channelId);
+    bool updateUdpMulticastChannel(const QString& channelId, const UdpMulticastConfig& newConfig);
+
     // ── 串口通道管理 ────────────────────────────
     bool removeSerialChannel(const QString& channelId);
     bool updateSerialChannel(const QString& channelId, const SerialConfig& newConfig);
