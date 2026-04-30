@@ -186,7 +186,17 @@ void FrameWorker::processData(const QByteArray &data)
             paramProcess(param, ledStates, editValues);
         else
             paramProcess_A6(param, ledStates, editValues);
-
+        
+        // CRC16/XMODEM 校验（bytes 5~18+N，存于帧尾前2字节，大端序）
+        int totalLen = frameData.size();
+        if (totalLen >= 10) {
+            quint16 calcCrc = FrameDataAnalysis::crc16Xmodem(frameData, 4, totalLen - 10);
+            quint16 storedCrc = (static_cast<quint8>(frameData[totalLen - 6]) << 8) |
+                                 static_cast<quint8>(frameData[totalLen - 5]);
+            editValues["校验结果"] = (calcCrc == storedCrc) ? QStringLiteral("校验正确") : QStringLiteral("校验错误");
+        } else {
+            editValues["校验结果"] = QStringLiteral("帧长不足");
+        }
         // 保存当前帧，供循环结束时确保最后一帧被emit
         lastLed = ledStates;
         lastEdit = editValues;

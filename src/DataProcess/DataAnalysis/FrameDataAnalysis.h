@@ -69,6 +69,19 @@ private:
      * @brief parseStartByte  解析 "0-1"→0、"4"→4 这类 byte_offset 字符串的首字节
      */
     static int parseStartByte(const QString& byteOffset);
+
+    /**
+     * @brief crc16Xmodem  计算 CRC16/XMODEM 校验
+     * @param data  原始帧数据
+     * @param start CRC 覆盖的起始字节（0-indexed）
+     * @param len   CRC 覆盖的字节数
+     * @return      计算出的 CRC 值（多项式 0x1021，初相 0x0000，无反转）
+     *
+     * 帧结构参考：
+     *   bytes 5~18+N (1-indexed) = 数据区，CRC 覆盖此范围
+     *   bytes 19+N~20+N        = 校验和（大端序存储）
+     */
+    static quint16 crc16Xmodem(const QByteArray& data, int start, int len);
 };
 
 #endif // FRAMEDATAANALYSIS_H
