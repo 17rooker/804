@@ -1,0 +1,32 @@
+# Build outputs
+debug/
+release/
+bin/*.exe
+bin/*.exe.debug
+
+# Generated Makefiles
+Makefile
+Makefile.Debug
+Makefile.Release
+object_script.*
+
+# Qt Creator / qmake
+*.pro.user
+.qmake.stash
+
+# Generated UI headers
+ui_*.h
+
+# Object files
+*.o
+*.obj
+
+# Logs
+bin/logs/
+
+# Backup files
+* - 副本.*
+
+# Third-party documentation and examples (not needed for build)
+thirdParty/asio/doc/
+thirdParty/asio/src/examples/
