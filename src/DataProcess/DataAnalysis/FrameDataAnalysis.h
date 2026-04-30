@@ -70,6 +70,7 @@ private:
      */
     static int parseStartByte(const QString& byteOffset);
 
+public:
     /**
      * @brief crc16Xmodem  计算 CRC16/XMODEM 校验
      * @param data  原始帧数据
