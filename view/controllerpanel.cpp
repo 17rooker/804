@@ -1534,45 +1534,42 @@ void FrameWorker::paramProcess_A6(STParamInfo &m_param, QMap<QString, bool> &m_l
             }
             m_editValues["波形采集继电器"] = relayStatus;
         }
-        // ====================== t1-t12 电磁阀波形电压采集 (23-70字节) ======================
-        else if(mapIt.key()=="AIN4_t1") // 机构Ⅰ 电压(t1-t12)
+        // ====================== t1-t12 电磁阀波形电压采集 (22-70字节) ======================
+        else if(mapIt.key().startsWith("AIN4_t")) // 机构Ⅰ t1-t12
         {
             quint8 rawValue = 0;
             if (item.varParaValue.canConvert<quint8>()) {
                 rawValue = item.varParaValue.value<quint8>();
             }
-            double volt = rawValue * 0.01952 / 0.51;
-            m_editValues["机构1电磁阀电压"] = QString::number(volt, 'f', 2);
+            // 每次采样覆盖上一次，最终显示为 t12
+            m_editValues["机构1电磁阀电压"] = QString::number(rawValue * 0.01952 / 0.51, 'f', 2);
         }
-        else if(mapIt.key()=="AIN5_t1") // 机构Ⅱ 电压(t1-t12)
+        else if(mapIt.key().startsWith("AIN5_t")) // 机构Ⅱ t1-t12
         {
             quint8 rawValue = 0;
             if (item.varParaValue.canConvert<quint8>()) {
                 rawValue = item.varParaValue.value<quint8>();
             }
-            double volt = rawValue * 0.01952 / 0.51;
-            m_editValues["机构2电磁阀电压"] = QString::number(volt, 'f', 2);
+            m_editValues["机构2电磁阀电压"] = QString::number(rawValue * 0.01952 / 0.51, 'f', 2);
         }
-        else if(mapIt.key()=="AIN6_t1") // 机构Ⅲ 电压(t1-t12)
+        else if(mapIt.key().startsWith("AIN6_t")) // 机构Ⅲ t1-t12
         {
             quint8 rawValue = 0;
             if (item.varParaValue.canConvert<quint8>()) {
                 rawValue = item.varParaValue.value<quint8>();
             }
-            double volt = rawValue * 0.01952 / 0.51;
-            m_editValues["机构3电磁阀电压"] = QString::number(volt, 'f', 2);
+            m_editValues["机构3电磁阀电压"] = QString::number(rawValue * 0.01952 / 0.51, 'f', 2);
         }
-        else if(mapIt.key()=="AIN7_t1") // 机构Ⅳ 电压(t1-t12)
+        else if(mapIt.key().startsWith("AIN7_t")) // 机构Ⅳ t1-t12
         {
             quint8 rawValue = 0;
             if (item.varParaValue.canConvert<quint8>()) {
                 rawValue = item.varParaValue.value<quint8>();
             }
-            double volt = rawValue * 0.01952 / 0.51;
-            m_editValues["机构4电磁阀电压"] = QString::number(volt, 'f', 2);
+            m_editValues["机构4电磁阀电压"] = QString::number(rawValue * 0.01952 / 0.51, 'f', 2);
         }
         // ====================== 火工品时间/预留/工作模式/指令码 ======================
-        else if(mapIt.key()=="InitiatorDetonateTime") // 71 火工品引爆时间
+        else if(mapIt.key()=="InitiatorDetonateTime") // 70-71 火工品引爆时间
         {
             quint16 rawValue = 0;
             if (item.varParaValue.canConvert<quint16>()) {
@@ -1580,7 +1577,7 @@ void FrameWorker::paramProcess_A6(STParamInfo &m_param, QMap<QString, bool> &m_l
             }
             m_editValues["引爆时间(ms)"] = QString::number(rawValue);
         }
-        else if(mapIt.key()=="InitiatorRelayCloseTime") //73 火工品引爆继电器关闭时间
+        else if(mapIt.key()=="InitiatorRelayCloseTime") //72-73 火工品引爆继电器关闭时间
         {
             quint16 rawValue = 0;
             if (item.varParaValue.canConvert<quint16>()) {
@@ -1588,7 +1585,7 @@ void FrameWorker::paramProcess_A6(STParamInfo &m_param, QMap<QString, bool> &m_l
             }
             m_editValues["继电器关闭时间(ms)"] = QString::number(rawValue);
         }
-        else if(mapIt.key()=="WorkMode") //77 工作模式
+        else if(mapIt.key()=="WorkMode") //76 工作模式
         {
             quint8 rawValue = 0;
             if (item.varParaValue.canConvert<quint8>()) {
@@ -1603,23 +1600,18 @@ void FrameWorker::paramProcess_A6(STParamInfo &m_param, QMap<QString, bool> &m_l
             }
             m_editValues["工作模式"] = mode;
         }
-        else if(mapIt.key()=="CmdCodeHigh") //78 指令码高8位
+        else if(mapIt.key()=="CommandCode") //77-78 指令码(UInt16)，拆分高/低位
         {
-            quint8 rawValue = 0;
-            if (item.varParaValue.canConvert<quint8>()) {
-                rawValue = item.varParaValue.value<quint8>();
+            quint16 rawValue = 0;
+            if (item.varParaValue.canConvert<quint16>()) {
+                rawValue = item.varParaValue.value<quint16>();
             }
-            m_editValues["指令码高8位"] = QString::number(rawValue, 16).toUpper();
+            quint8 high = (rawValue >> 8) & 0xFF;
+            quint8 low  = rawValue & 0xFF;
+            m_editValues["指令码高8位"] = QString::number(high, 16).toUpper();
+            m_editValues["指令码低8位"] = QString::number(low, 16).toUpper();
         }
-        else if(mapIt.key()=="CmdCodeLow") //79 指令码低8位
-        {
-            quint8 rawValue = 0;
-            if (item.varParaValue.canConvert<quint8>()) {
-                rawValue = item.varParaValue.value<quint8>();
-            }
-            m_editValues["指令码低8位"] = QString::number(rawValue, 16).toUpper();
-        }
-        else if(mapIt.key()=="CmdRequire") //80 操作要求
+        else if(mapIt.key()=="OperationReq") //79 操作要求
         {
             quint8 rawValue = 0;
             if (item.varParaValue.canConvert<quint8>()) {
@@ -1762,6 +1754,47 @@ void FrameWorker::paramProcess_A6(STParamInfo &m_param, QMap<QString, bool> &m_l
             }
             double volt = rawValue * 0.0293;
             m_editValues["数字5V3"] = QString::number(volt, 'f', 2);
+        }
+        // ====================== 公共帧头字段 ======================
+        else if(mapIt.key()=="FrameLength")
+        {
+            quint32 rawValue = 0;
+            if (item.varParaValue.canConvert<quint32>())
+                rawValue = item.varParaValue.value<quint32>();
+            m_editValues["帧长"] = QString::number(rawValue);
+            m_editValues["时序_帧长"] = QString::number(rawValue);
+        }
+        else if(mapIt.key()=="FrameCount")
+        {
+            qint32 rawValue = 0;
+            if (item.varParaValue.canConvert<qint32>())
+                rawValue = item.varParaValue.value<qint32>();
+            m_editValues["帧计数"] = QString::number(rawValue);
+            m_editValues["帧计数1"] = QString::number(rawValue);
+            m_editValues["帧计数2"] = QString::number(rawValue);
+            m_editValues["帧计数3"] = QString::number(rawValue);
+            m_editValues["帧计数4"] = QString::number(rawValue);
+        }
+        else if(mapIt.key()=="FrameType")
+        {
+            quint8 rawValue = 0;
+            if (item.varParaValue.canConvert<quint8>())
+                rawValue = item.varParaValue.value<quint8>();
+            QString type;
+            switch (rawValue) {
+            case 0x01: type = "终端"; break;
+            case 0x02: type = "串口服务器"; break;
+            default:   type = "未知"; break;
+            }
+            m_editValues["帧类型"] = QString::number(rawValue, 16).toUpper();
+            m_editValues["帧类型_校验"] = type;
+        }
+        else if(mapIt.key()=="TimeFlag")
+        {
+            quint32 rawValue = 0;
+            if (item.varParaValue.canConvert<quint32>())
+                rawValue = item.varParaValue.value<quint32>();
+            m_editValues["时间标志"] = QString::number(rawValue);
         }
     }
 }
