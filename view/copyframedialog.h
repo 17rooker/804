@@ -2,6 +2,7 @@
 #define CopyFrameDialog_H
 
 #include <QWidget>
+#include <QMap>
 #include "src/Common/StructDefine.h"
 class StyledLedLabel;
 class StyledLineEdit;
@@ -13,16 +14,22 @@ class CopyFrameDialog : public QWidget
 public:
     CopyFrameDialog(QWidget *parent = nullptr);
     ~CopyFrameDialog();
+
+public slots:
     void setParam(const STParamInfo& param);
+
 private:
     void setupUi();
-    QWidget* createColumn1();    // 第一列：火保/解控等状态灯
-    QWidget* createColumn2();    // 第二列：机构1/2相关状态灯
-    QWidget* createColumn3();    // 第三列：机构3/4/电爆/火引爆状态灯
-    QWidget* createColumn4();    // 第四列：帧长/帧计数等参数
-    QWidget* createColumn5();    // 第五列：机构1电压1~12
-    QWidget* createColumn6();    // 第六列：校验结果/帧类型等
-    QWidget* createCombinedColumn();
+    QWidget* createColumn1();    // 火保/解控状态灯
+    QWidget* createColumn2();    // 机构1/2/3状态灯
+    QWidget* createColumn3();    // 机构4/电爆/火引爆状态灯
+    QWidget* createColumn4();    // 帧参数输入框
+    QWidget* createCombinedColumn(); // 时序+校验列
+
+    void updateData(const STParamInfo& param);
+
+    QMap<QString, StyledLedLabel*>  m_ledMap;
+    QMap<QString, StyledLineEdit*>  m_valueMap;
     STParamInfo m_param;
 };
 
