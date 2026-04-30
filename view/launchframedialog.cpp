@@ -999,6 +999,7 @@ void FrameDataWorker::paramProcess(STParamInfo &m_param, QMap<QString, bool> &m_
 
                 // 存入状态字典
                 m_editValues[QString("采集器标识%1").arg(i)] =QString::number(rawValue) ;
+                m_ledStates[QString("校验%1").arg(i)] = (rawValue != 0);
             }
             else if(mapIt.key() == QString("ProximitySwitchSQ1_1Status%1").arg(i))
             {
