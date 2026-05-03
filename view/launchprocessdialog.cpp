@@ -1549,8 +1549,7 @@ void LaunchProcessDialog::onMessage(IEvent *pEvent)
          // 设备数据（TCP / UDP / 串口 解析后投递）
          auto* pInit = static_cast<InitiativeMsgEvent*>(pEvent);
          const STParamInfo& param = pInit->getParamData();
-         qDebug() << "[UI] 收到设备数据 deviceId=" << param.unSourceID;
-//          updateDisplay(param);
+         setParam(param);
         break;
     }
 
