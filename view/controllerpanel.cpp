@@ -468,6 +468,7 @@ void FrameWorker::paramProcess(STParamInfo &m_param, QMap<QString, bool> &m_ledS
             m_ledStates["机构1-控制电缆连接情况"] = xf01a1Status1;
             m_ledStates["机构1供气"] = dcf1Y3_State;
             m_ledStates["机构1锁定"] = dcf1Y2_State;
+            m_ledStates["机构1-锁定到位"] = dcf1Y2_State;
             m_ledStates["机构1释放备"] = dcf1Y1_2_State;
             m_ledStates["机构1释放主"] = dcf1Y1_1_State;
         }
@@ -498,6 +499,7 @@ void FrameWorker::paramProcess(STParamInfo &m_param, QMap<QString, bool> &m_ledS
             m_ledStates["机构2-控制电缆连接情况"] = xf01a1Status2;
             m_ledStates["机构2供气"] = dcf2Y3_State;
             m_ledStates["机构2锁定"] = dcf2Y2_State;
+            m_ledStates["机构2-锁定到位"] = dcf2Y2_State;
             m_ledStates["机构2释放备"] = dcf2Y1_2_State;
             m_ledStates["机构2释放主"] = dcf2Y1_1_State;
         }
@@ -527,6 +529,7 @@ void FrameWorker::paramProcess(STParamInfo &m_param, QMap<QString, bool> &m_ledS
             m_ledStates["机构3-控制电缆连接情况"] = xf01a2Status1;
             m_ledStates["机构3供气"] = dcf3Y3_State;
             m_ledStates["机构3锁定"] = dcf3Y2_State;
+            m_ledStates["机构3-锁定到位"] = dcf3Y2_State;
             m_ledStates["机构3释放备"] = dcf3Y1_2_State;
             m_ledStates["机构3释放主"] = dcf3Y1_1_State;
         }
@@ -556,6 +559,7 @@ void FrameWorker::paramProcess(STParamInfo &m_param, QMap<QString, bool> &m_ledS
             m_ledStates["机构4-控制电缆连接情况"] = xf01a2Status2;
             m_ledStates["机构4供气"] = dcf4Y3_State;
             m_ledStates["机构4锁定"] = dcf4Y2_State;
+            m_ledStates["机构4-锁定到位"] = dcf4Y2_State;
             m_ledStates["机构4释放备"] = dcf4Y1_2_State;
             m_ledStates["机构4释放主"] = dcf4Y1_1_State;
         }
@@ -761,6 +765,8 @@ void FrameWorker::paramProcess(STParamInfo &m_param, QMap<QString, bool> &m_ledS
             // 状态存入m_ledStates
             m_ledStates["机构2-释放好"] = mechanism2ReleaseOk;
             m_ledStates["机构1-释放好"] = mechanism1ReleaseOk;
+            m_ledStates["机构1-释放到位"] = mechanism1ReleaseOk;
+            m_ledStates["机构2-释放到位"] = mechanism2ReleaseOk;
             m_ledStates["SFH2_7.3"] = sfh1_7_3_2;
             m_ledStates["SFH2_7.2"] = sfh1_7_2_2;
             m_ledStates["SFH2_7.1"] = sfh1_7_1_2;
@@ -788,6 +794,8 @@ void FrameWorker::paramProcess(STParamInfo &m_param, QMap<QString, bool> &m_ledS
             // 状态存入m_ledStates
             m_ledStates["机构4-释放好"] = mechanism4ReleaseOk;
             m_ledStates["机构3-释放好"] = mechanism3ReleaseOk;
+            m_ledStates["机构3-释放到位"] = mechanism3ReleaseOk;
+            m_ledStates["机构4-释放到位"] = mechanism4ReleaseOk;
             m_ledStates["SFH4_7.3"] = sfh1_7_3_4;
             m_ledStates["SFH4_7.2"] = sfh1_7_2_4;
             m_ledStates["SFH4_7.1"] = sfh1_7_1_4;
@@ -833,7 +841,7 @@ void FrameWorker::paramProcess(STParamInfo &m_param, QMap<QString, bool> &m_ledS
             }
 
             // 将计算后的电压值存入状态字典
-            m_editValues["机构1-解锁到位时间(s)"] =  QString::number(rawValue);
+            m_editValues["牵制释放好时间(s)"] =  QString::number(rawValue);
         }
         else if(mapIt.key()=="Mechanism1UnlockInPlaceTime")
         {
@@ -844,7 +852,7 @@ void FrameWorker::paramProcess(STParamInfo &m_param, QMap<QString, bool> &m_ledS
             }
 
             // 将计算后的电压值存入状态字典
-            m_editValues["机构1-释放好时间(s)"] =  QString::number(rawValue);
+            m_editValues["机构1-解锁到位时间(s)"] =  QString::number(rawValue);
         }
         else if(mapIt.key()=="Mechanism1ReleaseTime")
         {
@@ -855,7 +863,7 @@ void FrameWorker::paramProcess(STParamInfo &m_param, QMap<QString, bool> &m_ledS
             }
 
             // 将计算后的电压值存入状态字典
-            m_editValues["机构1-释放到位时间(s)"] =  QString::number(rawValue);
+            m_editValues["机构1-释放好时间(s)"] =  QString::number(rawValue);
         }
         else if(mapIt.key()=="Mechanism1ReleaseInPlaceTime")
         {
@@ -866,7 +874,7 @@ void FrameWorker::paramProcess(STParamInfo &m_param, QMap<QString, bool> &m_ledS
             }
 
             // 将计算后的电压值存入状态字典
-            m_editValues["机构1-火引爆时间"] =  QString::number(rawValue);
+            m_editValues["机构1-释放到位时间(s)"] =  QString::number(rawValue);
         }
         else if(mapIt.key()=="Mechanism1InitiatorDetonateTime")
         {
@@ -877,7 +885,7 @@ void FrameWorker::paramProcess(STParamInfo &m_param, QMap<QString, bool> &m_ledS
             }
 
             // 将计算后的电压值存入状态字典
-            m_editValues["牵制释放好时间(s)"] =  QString::number(rawValue);
+            m_editValues["机构1-火引爆时间"] =  QString::number(rawValue);
         }
         else if(mapIt.key()=="Mechanism2UnlockTime")
         {
