@@ -217,7 +217,8 @@ void FrameWorker::processData_sel( STParamInfo &param)
 {
     QMap<QString, bool> ledStates;
     QMap<QString, QString> editValues;
-    paramProcess(param,ledStates,editValues);
+    paramProcess(param, ledStates, editValues);
+    paramProcess_A6(param, ledStates, editValues);  // 补充A6协议处理
     emit dataProcessed(ledStates, editValues);
 }
 
