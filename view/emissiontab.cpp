@@ -86,7 +86,10 @@ void EmissionTab::onMessage(IEvent *pEvent)
         }
         else
         {
-            // 发给测试帧 + 波形图界面：均做非空检查
+            // A6：发给发射帧 + 测试帧 + 波形图
+            if (m_launchFrameDialog) {
+                m_launchFrameDialog->setParam(param);
+            }
             if (m_copyFrameDialog) {
                 m_copyFrameDialog->setParam(param);
             }
