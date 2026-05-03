@@ -6,6 +6,7 @@
 #include <QDateTime>
 #include <QTextEdit>
 #include <qlabel.h>
+#include <QHBoxLayout>
 #include "styledledlabel.h"
 #include "styledlineedit.h"
 #include "src/Common/StructDefine.h"
@@ -47,14 +48,12 @@ private slots:
 
 private:
     void setupUI();
-    void setupVoteUI(QVBoxLayout *parent);
     void onTimerTimeout();
     void onTimerTimeout_ser();
     void initWorkerThread();
     void onDataProcessed(const QMap<QString, bool> &ledStates, const QMap<QString, QString> &editValues);
     void updateControllerFrameUI(const QMap<QString, bool> &ledStates, const QMap<QString, QString> &editValues);
     void setParam(const STParamInfo& param);
-    void updateVoting();
 
     Ui::LaunchProcessDialog *ui;
     QTimer *m_timer;
@@ -75,7 +74,6 @@ private:
     StyledLedLabel *m_lightReady;
 
     QLabel *m_lblTime;
-    QLabel *m_lblVoteMode = nullptr;   // 表决模式显示
 
     QPushButton *m_btnAutoGas;
     QPushButton *m_btnManualGas;
@@ -98,9 +96,6 @@ private:
     QMap<QString, StyledLineEdit*> m_valueMap;
     QTextEdit *m_logText = nullptr;
 
-    // 三通道表决数据
-    STParamInfo m_paramE, m_paramF, m_paramG;
-    QMap<QString, StyledLedLabel*> m_voteLedMap;  // 表决LED
 };
 
 #endif // LAUNCHPROCESSDIALOG_H
