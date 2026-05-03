@@ -472,6 +472,9 @@ void CopyFrameDialog::updateData(const STParamInfo& param)
             quint32 r = item.varParaValue.toUInt();
             setVal("帧类型", QString::number(r, 16).toUpper());
             setVal("测试帧_帧类型", QString::number(r, 16).toUpper());
+            QString desc;
+            switch (r) { case 1: desc="终端"; break; case 2: desc="串口服务器"; break; default: desc=QString::number(r,16); break; }
+            setVal("测试帧_帧类型_校验", desc);
         }
         else if (key == "TimeFlag") setVal("时间标志", item.varParaValue.toString());
         else if (key == "CRC校验") setVal("测试帧_校验", item.varParaValue.toString());
@@ -572,27 +575,51 @@ void CopyFrameDialog::updateData(const STParamInfo& param)
         // ── 工作模式 ──
         else if (key == "WorkMode") {
             quint8 r = item.varParaValue.toUInt();
-            QString m;
+            QString m,n;
             switch (r) {
-            case 0xAA: m="测试模式"; break; case 0xBB: m="手动模式"; break;
-            case 0xCC: m="自动模式"; break; default: m=QString::number(r,16); break;
+            case 0xAA:
+            {
+               m="测试模式";
+               n="AA";
+            } break;
+            case 0xBB:
+            {
+                m="手动模式";
+                n="BB";
+            } break;
+            case 0xCC:
+            {
+                m="自动模式";
+                n="CC";
+            }break;
+            default: m=QString::number(r,16);
+                break;
             }
-            setVal("测试帧_工作模式", m);
+            setVal("测试帧_工作模式", n);
+            setVal("测试帧_工作模式_校验", m);
         }
 
         // ── 命令码 ──
-        else if (key == "CommandCodeHigh")
+        else if (key == "CommandCodeHigh") {
             setVal("测试帧_命令码", item.varParaValue.toString());
-        else if (key == "CommandCode")
-            setVal("测试帧_命令码", QString::number(item.varParaValue.toUInt(), 16).toUpper());
+            setVal("测试帧_命令码_校验", item.varParaValue.toString());
+        }
+        else if (key == "CommandCode") {
+            QString v = QString::number(item.varParaValue.toUInt(), 16).toUpper();
+            setVal("测试帧_命令码", v);
+            setVal("测试帧_命令码_校验", v);
+        }
 
         // ── FPGAID → 继电器 ──
         else if (key == "FPGAID") {
             quint8 r = item.varParaValue.toUInt(); QString id;
             switch(r){case 0xAA:id="FPGA1";break;case 0xBB:id="FPGA2";break;case 0xCC:id="FPGA3";break;default:id=QString::number(r,16);}
             setVal("测试帧_继电器状态", id);
+            setVal("测试帧_继电器状态_校验", id);
         }
-        else if (key == "SolenoidValveRelayPath")
+        else if (key == "SolenoidValveRelayPath") {
             setVal("测试帧_继电器状态", item.varParaValue.toString());
+            setVal("测试帧_继电器状态_校验", item.varParaValue.toString());
+        }
     }
 }

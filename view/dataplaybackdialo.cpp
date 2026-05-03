@@ -619,20 +619,23 @@ void DataPlaybackDialog::onRawDataReady(const QByteArray &data)
         m_frameParseBuffer.remove(0, requiredSize); // 从缓存移除已解析的帧
         if(frameLen==428)
         {
-//            // 发送到LaunchFrameDialog（UI线程安全调用）
-//            QMetaObject::invokeMethod(m_dataPanel, "appendData",
-//                                      Qt::QueuedConnection,
-//                                      Q_ARG(QByteArray, frameData));
-//            QMetaObject::invokeMethod(m_launchFrameDialog, "appendData",
-//                                      Qt::QueuedConnection,
-//                                      Q_ARG(QByteArray, frameData));
+            // 发送到LaunchFrameDialog（UI线程安全调用）
+            QMetaObject::invokeMethod(m_dataPanel, "appendData",
+                                      Qt::QueuedConnection,
+                                      Q_ARG(QByteArray, frameData));
+            QMetaObject::invokeMethod(m_launchFrameDialog, "appendData",
+                                      Qt::QueuedConnection,
+                                      Q_ARG(QByteArray, frameData));
 
-//            QMetaObject::invokeMethod(m_LaunchProcess, "appendData",
-//                                      Qt::QueuedConnection,
-//                                      Q_ARG(QByteArray, frameData));
+            QMetaObject::invokeMethod(m_LaunchProcess, "appendData",
+                                      Qt::QueuedConnection,
+                                      Q_ARG(QByteArray, frameData));
         }
         else
         {
+            QMetaObject::invokeMethod(m_dataPanel, "appendData",
+                                      Qt::QueuedConnection,
+                                      Q_ARG(QByteArray, frameData));
             QMetaObject::invokeMethod(m_LaunchProcess, "appendData",
                                      Qt::QueuedConnection,
                                      Q_ARG(QByteArray, frameData));
