@@ -531,6 +531,24 @@ void CopyFrameDialog::updateData(const STParamInfo& param)
         else if (key == "ReleasePermitAndPowerStatus")
             setLed("转发允释1", item.varParaValue.toUInt() & 0x80);
 
+        // ── 电磁阀波形电压 AIN4_t1~AIN7_t12 → 4×12 时间框 ──
+        else if (key.startsWith("AIN4_t")) {
+            double v = item.varParaValue.toUInt() * 0.01952 / 0.51;
+            setVal(QString("t%1_c1").arg(key.mid(6).toInt()), QString::number(v, 'f', 2));
+        }
+        else if (key.startsWith("AIN5_t")) {
+            double v = item.varParaValue.toUInt() * 0.01952 / 0.51;
+            setVal(QString("t%1_c2").arg(key.mid(6).toInt()), QString::number(v, 'f', 2));
+        }
+        else if (key.startsWith("AIN6_t")) {
+            double v = item.varParaValue.toUInt() * 0.01952 / 0.51;
+            setVal(QString("t%1_c3").arg(key.mid(6).toInt()), QString::number(v, 'f', 2));
+        }
+        else if (key.startsWith("AIN7_t")) {
+            double v = item.varParaValue.toUInt() * 0.01952 / 0.51;
+            setVal(QString("t%1_c4").arg(key.mid(6).toInt()), QString::number(v, 'f', 2));
+        }
+
         // ── 电压 ──
         else if (key == "DigitalPowerVoltage") setVal("数字供电", item.varParaValue.toString());
         else if (key == "DrivePowerVoltage1")  setVal("驱动供电1", item.varParaValue.toString());
