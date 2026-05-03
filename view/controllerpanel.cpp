@@ -833,7 +833,7 @@ void FrameWorker::paramProcess(STParamInfo &m_param, QMap<QString, bool> &m_ledS
             }
 
             // 将计算后的电压值存入状态字典
-            m_editValues["解锁时间1"] =  QString::number(rawValue);
+            m_editValues["机构1-解锁到位时间(s)"] =  QString::number(rawValue);
         }
         else if(mapIt.key()=="Mechanism1UnlockInPlaceTime")
         {
@@ -844,7 +844,7 @@ void FrameWorker::paramProcess(STParamInfo &m_param, QMap<QString, bool> &m_ledS
             }
 
             // 将计算后的电压值存入状态字典
-            m_editValues["解锁到位时间1"] =  QString::number(rawValue);
+            m_editValues["机构1-释放好时间(s)"] =  QString::number(rawValue);
         }
         else if(mapIt.key()=="Mechanism1ReleaseTime")
         {
@@ -855,7 +855,7 @@ void FrameWorker::paramProcess(STParamInfo &m_param, QMap<QString, bool> &m_ledS
             }
 
             // 将计算后的电压值存入状态字典
-            m_editValues["释放好时间1"] =  QString::number(rawValue);
+            m_editValues["机构1-释放到位时间(s)"] =  QString::number(rawValue);
         }
         else if(mapIt.key()=="Mechanism1ReleaseInPlaceTime")
         {
@@ -866,7 +866,7 @@ void FrameWorker::paramProcess(STParamInfo &m_param, QMap<QString, bool> &m_ledS
             }
 
             // 将计算后的电压值存入状态字典
-            m_editValues["释放到位时间1"] =  QString::number(rawValue);
+            m_editValues["机构1-火引爆时间"] =  QString::number(rawValue);
         }
         else if(mapIt.key()=="Mechanism1InitiatorDetonateTime")
         {
@@ -877,7 +877,7 @@ void FrameWorker::paramProcess(STParamInfo &m_param, QMap<QString, bool> &m_ledS
             }
 
             // 将计算后的电压值存入状态字典
-            m_editValues["火引爆到位时间1"] =  QString::number(rawValue);
+            m_editValues["牵制释放好时间(s)"] =  QString::number(rawValue);
         }
         else if(mapIt.key()=="Mechanism2UnlockTime")
         {
@@ -888,7 +888,7 @@ void FrameWorker::paramProcess(STParamInfo &m_param, QMap<QString, bool> &m_ledS
             }
 
             // 将计算后的电压值存入状态字典
-            m_editValues["解锁时间2"] =  QString::number(rawValue);
+            m_editValues["牵制释放好时间(s)"] =  QString::number(rawValue);
         }
         else if(mapIt.key()=="Mechanism2UnlockInPlaceTime")
         {
@@ -899,7 +899,7 @@ void FrameWorker::paramProcess(STParamInfo &m_param, QMap<QString, bool> &m_ledS
             }
 
             // 将计算后的电压值存入状态字典
-            m_editValues["解锁到位时间2"] =  QString::number(rawValue);
+            m_editValues["机构2-解锁到位时间(s)"] =  QString::number(rawValue);
         }
         else if(mapIt.key()=="Mechanism2ReleaseTime")
         {
@@ -910,7 +910,7 @@ void FrameWorker::paramProcess(STParamInfo &m_param, QMap<QString, bool> &m_ledS
             }
 
             // 将计算后的电压值存入状态字典
-            m_editValues["释放好时间2"] =  QString::number(rawValue);
+            m_editValues["机构2-释放好时间(s)"] =  QString::number(rawValue);
         }
         else if(mapIt.key()=="Mechanism2ReleaseInPlaceTime")
         {
@@ -921,7 +921,7 @@ void FrameWorker::paramProcess(STParamInfo &m_param, QMap<QString, bool> &m_ledS
             }
 
             // 将计算后的电压值存入状态字典
-            m_editValues["释放到位时间2"] =  QString::number(rawValue);
+            m_editValues["机构2-释放到位时间(s)"] =  QString::number(rawValue);
         }
         else if(mapIt.key()=="Mechanism2InitiatorDetonateTime")
         {
@@ -932,7 +932,7 @@ void FrameWorker::paramProcess(STParamInfo &m_param, QMap<QString, bool> &m_ledS
             }
 
             // 将计算后的电压值存入状态字典
-            m_editValues["火引爆到位时间2"] =  QString::number(rawValue);
+            m_editValues["机构2-火引爆时间"] =  QString::number(rawValue);
         }
         else if(mapIt.key()=="Mechanism3UnlockTime")
         {
@@ -943,7 +943,7 @@ void FrameWorker::paramProcess(STParamInfo &m_param, QMap<QString, bool> &m_ledS
             }
 
             // 将计算后的电压值存入状态字典
-            m_editValues["解锁时间3"] =  QString::number(rawValue);
+            m_editValues["牵制释放好时间(s)"] =  QString::number(rawValue);
         }
         else if(mapIt.key()=="Mechanism3UnlockInPlaceTime")
         {
@@ -954,7 +954,7 @@ void FrameWorker::paramProcess(STParamInfo &m_param, QMap<QString, bool> &m_ledS
             }
 
             // 将计算后的电压值存入状态字典
-            m_editValues["解锁到位时间3"] =  QString::number(rawValue);
+            m_editValues["机构3-解锁到位时间(s)"] =  QString::number(rawValue);
         }
         else if(mapIt.key()=="Mechanism3ReleaseTime")
         {
@@ -965,7 +965,7 @@ void FrameWorker::paramProcess(STParamInfo &m_param, QMap<QString, bool> &m_ledS
             }
 
             // 将计算后的电压值存入状态字典
-            m_editValues["释放好时间3"] =  QString::number(rawValue);
+            m_editValues["机构3-释放好时间(s)"] =  QString::number(rawValue);
         }
         else if(mapIt.key()=="Mechanism3ReleaseInPlaceTime")
         {
@@ -976,7 +976,7 @@ void FrameWorker::paramProcess(STParamInfo &m_param, QMap<QString, bool> &m_ledS
             }
 
             // 将计算后的电压值存入状态字典
-            m_editValues["释放到位时间3"] =  QString::number(rawValue);
+            m_editValues["机构3-释放到位时间(s)"] =  QString::number(rawValue);
         }
         else if(mapIt.key()=="Mechanism3InitiatorDetonateTime")
         {
@@ -987,7 +987,7 @@ void FrameWorker::paramProcess(STParamInfo &m_param, QMap<QString, bool> &m_ledS
             }
 
             // 将计算后的电压值存入状态字典
-            m_editValues["火引爆到位时间3"] =  QString::number(rawValue);
+            m_editValues["机构3-火引爆时间"] =  QString::number(rawValue);
         }
         else if(mapIt.key()=="Mechanism4UnlockTime")
         {
@@ -998,7 +998,7 @@ void FrameWorker::paramProcess(STParamInfo &m_param, QMap<QString, bool> &m_ledS
             }
 
             // 将计算后的电压值存入状态字典
-            m_editValues["解锁时间4"] =  QString::number(rawValue);
+            m_editValues["牵制释放好时间(s)"] =  QString::number(rawValue);
         }
         else if(mapIt.key()=="Mechanism4UnlockInPlaceTime")
         {
@@ -1009,7 +1009,7 @@ void FrameWorker::paramProcess(STParamInfo &m_param, QMap<QString, bool> &m_ledS
             }
 
             // 将计算后的电压值存入状态字典
-            m_editValues["解锁到位时间4"] =  QString::number(rawValue);
+            m_editValues["机构4-解锁到位时间(s)"] =  QString::number(rawValue);
         }
         else if(mapIt.key()=="Mechanism4ReleaseTime")
         {
@@ -1020,7 +1020,7 @@ void FrameWorker::paramProcess(STParamInfo &m_param, QMap<QString, bool> &m_ledS
             }
 
             // 将计算后的电压值存入状态字典
-            m_editValues["释放好时间4"] =  QString::number(rawValue);
+            m_editValues["机构4-释放好时间(s)"] =  QString::number(rawValue);
         }
         else if(mapIt.key()=="Mechanism4ReleaseInPlaceTime")
         {
@@ -1031,7 +1031,7 @@ void FrameWorker::paramProcess(STParamInfo &m_param, QMap<QString, bool> &m_ledS
             }
 
             // 将计算后的电压值存入状态字典
-            m_editValues["释放到位时间4"] =  QString::number(rawValue);
+            m_editValues["机构4-释放到位时间(s)"] =  QString::number(rawValue);
         }
         else if(mapIt.key()=="Mechanism4InitiatorDetonateTime")
         {
@@ -1042,7 +1042,7 @@ void FrameWorker::paramProcess(STParamInfo &m_param, QMap<QString, bool> &m_ledS
             }
 
             // 将计算后的电压值存入状态字典
-            m_editValues["火引爆到位时间4"] =  QString::number(rawValue);
+            m_editValues["机构4-火引爆时间"] =  QString::number(rawValue);
         }
         for(int i=1;i<5;i++)
         {
