@@ -2,6 +2,7 @@
 #include "launchframedialog.h"
 #include "controllerpanel.h"
 #include "launchprocessdialog.h"
+#include "copyframedialog.h"
 #include <QMutexLocker>
 #include <QDebug>
 #include <QScrollBar>
@@ -204,6 +205,7 @@ DataPlaybackDialog::DataPlaybackDialog(QWidget *parent)
     , m_launchFrameDialog(nullptr)
     ,m_dataPanel(nullptr)
     ,m_LaunchProcess(nullptr)
+    , m_copyFrameDialog(nullptr)
 {
     setWindowTitle("数据回放");
     setFixedSize(800, 600);
@@ -248,6 +250,10 @@ void DataPlaybackDialog::setControllerPanelDialog(ControllerPanel *dialog)
 void DataPlaybackDialog::setLaunchProcessDialog(LaunchProcessDialog *dialog)
 {
      m_LaunchProcess=dialog;
+}
+void DataPlaybackDialog::setCopyFrameDialog(CopyFrameDialog *dialog)
+{
+    m_copyFrameDialog = dialog;
 }
 
 void DataPlaybackDialog::initUI()
@@ -520,6 +526,8 @@ void DataPlaybackDialog::onStopClicked()
         QMetaObject::invokeMethod(m_launchFrameDialog, "clearPlaybackCache", Qt::QueuedConnection);
     if (m_LaunchProcess)
         QMetaObject::invokeMethod(m_LaunchProcess, "clearPlaybackCache", Qt::QueuedConnection);
+    if (m_copyFrameDialog)
+        QMetaObject::invokeMethod(m_copyFrameDialog, "clearPlaybackCache", Qt::QueuedConnection);
 
     // 停止读取并销毁线程
     destroyWorkerThread();
@@ -536,6 +544,8 @@ void DataPlaybackDialog::onQuitClicked()
         QMetaObject::invokeMethod(m_launchFrameDialog, "clearPlaybackCache", Qt::QueuedConnection);
     if (m_LaunchProcess)
         QMetaObject::invokeMethod(m_LaunchProcess, "clearPlaybackCache", Qt::QueuedConnection);
+    if (m_copyFrameDialog)
+        QMetaObject::invokeMethod(m_copyFrameDialog, "clearPlaybackCache", Qt::QueuedConnection);
 
     this->hide();
     destroyWorkerThread();
@@ -609,26 +619,27 @@ void DataPlaybackDialog::onRawDataReady(const QByteArray &data)
         m_frameParseBuffer.remove(0, requiredSize); // 从缓存移除已解析的帧
         if(frameLen==428)
         {
-            // 发送到LaunchFrameDialog（UI线程安全调用）
-            QMetaObject::invokeMethod(m_dataPanel, "appendData",
-                                      Qt::QueuedConnection,
-                                      Q_ARG(QByteArray, frameData));
-            QMetaObject::invokeMethod(m_launchFrameDialog, "appendData",
-                                      Qt::QueuedConnection,
-                                      Q_ARG(QByteArray, frameData));
+//            // 发送到LaunchFrameDialog（UI线程安全调用）
+//            QMetaObject::invokeMethod(m_dataPanel, "appendData",
+//                                      Qt::QueuedConnection,
+//                                      Q_ARG(QByteArray, frameData));
+//            QMetaObject::invokeMethod(m_launchFrameDialog, "appendData",
+//                                      Qt::QueuedConnection,
+//                                      Q_ARG(QByteArray, frameData));
 
-            QMetaObject::invokeMethod(m_LaunchProcess, "appendData",
-                                      Qt::QueuedConnection,
-                                      Q_ARG(QByteArray, frameData));
+//            QMetaObject::invokeMethod(m_LaunchProcess, "appendData",
+//                                      Qt::QueuedConnection,
+//                                      Q_ARG(QByteArray, frameData));
         }
         else
         {
             QMetaObject::invokeMethod(m_LaunchProcess, "appendData",
                                      Qt::QueuedConnection,
                                      Q_ARG(QByteArray, frameData));
-            QMetaObject::invokeMethod(m_launchFrameDialog, "appendData",
-                                      Qt::QueuedConnection,
-                                      Q_ARG(QByteArray, frameData));
+//            if (m_copyFrameDialog)
+                QMetaObject::invokeMethod(m_copyFrameDialog, "appendData",
+                                          Qt::QueuedConnection,
+                                          Q_ARG(QByteArray, frameData));
         }
 
 //        qDebug() << "解析到有效帧：帧头=" << header.toHex().toUpper()

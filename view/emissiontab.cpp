@@ -205,6 +205,7 @@ void EmissionTab::setupUI()
         playbackDlg->setLaunchFrameDialog(m_launchFrameDialog);
         playbackDlg->setLaunchProcessDialog(m_LaunchProcessDialog);
         playbackDlg->setControllerPanelDialog(m_dataPanel);
+        playbackDlg->setCopyFrameDialog(m_copyFrameDialog);
 
         playbackDlg->show();
         playbackDlg->raise();

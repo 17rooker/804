@@ -1426,12 +1426,12 @@ LaunchProcessDialog::LaunchProcessDialog(QWidget *parent)
 LaunchProcessDialog::~LaunchProcessDialog() {
     m_workerThread->quit();
     m_workerThread->wait();
-}
-void LaunchProcessDialog::appendData(const QByteArray &data)
-{
     DataInteractionManager::getInstance()
         .getMsgHandle()
         ->unSubMessageAll(this);
+}
+void LaunchProcessDialog::appendData(const QByteArray &data)
+{
     QMutexLocker locker(&m_cacheMutex);
     m_dataCache.append(data);
 

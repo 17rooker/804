@@ -31,10 +31,11 @@ ChartWidget::ChartWidget(QWidget *parent)
     , m_markerLine(nullptr)
     , m_markerText(nullptr)
 {
+
     initUI();
     initPlot();
     initConnections();
-
+    clearMeasureMarkers();
     // 默认进入拖拽模式
     switchMode(InteractMode::Drag);
 }

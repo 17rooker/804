@@ -2,60 +2,123 @@
 #include "styledledlabel.h"
 #include "styledlineedit.h"
 
+#include "src/DataProcess/DataAnalysis/FrameDataAnalysis.h"
+#include "src/Common/CommTypes.h"
+
 #include <QHBoxLayout>
 #include <QVBoxLayout>
 #include <QLabel>
-#include <QFrame>
+#include <QGroupBox>
+#include <QTimer>
+#include <QThread>
+#include <QMetaObject>
 
-// ── helper: 创建LED行 ────────────────────────────────────────────────────
-static QWidget* makeLedRow(CopyFrameDialog* dlg, const QString& text,
-                           QMap<QString, StyledLedLabel*>& ledMap)
+// ═══════════════════════════════════════════════════════════════════════════
+//  FrameCopyWorker
+// ═══════════════════════════════════════════════════════════════════════════
+void FrameCopyWorker::processData(const QByteArray &data)
 {
-    auto *row = new QWidget;
-    auto *h = new QHBoxLayout(row);
-    h->setContentsMargins(0, 0, 0, 0);
-    h->setSpacing(4);
-    auto *led = new StyledLedLabel(dlg);
-    led->setOn(false);
-    led->setSwitchable(false);
-    led->setDisabledLed(false);
-    led->setFixedSize(16, 16);
-    h->addWidget(led, 0, Qt::AlignCenter);
-    auto *lbl = new QLabel(text);
-    lbl->setFixedWidth(65);
-    h->addWidget(lbl);
-    h->addStretch();
-    ledMap[text] = led;
-    return row;
-}
+    QByteArray buf = data;
+    const int MAX_FRAMES = 100;
+    const int EMIT_INTERVAL = 5;
+    int framesProcessed = 0;
+    STParamInfo lastParam;
 
-// ── helper: 创建数值行 ───────────────────────────────────────────────────
-static QWidget* makeValueRow(CopyFrameDialog* dlg, const QString& label,
-                             QMap<QString, StyledLineEdit*>& valMap,
-                             bool gray = true, const QString& def = "--")
-{
-    auto *row = new QWidget;
-    auto *h = new QHBoxLayout(row);
-    h->setContentsMargins(0, 0, 0, 0);
-    h->setSpacing(4);
-    auto *lbl = new QLabel(label);
-    lbl->setFixedWidth(55);
-    lbl->setAlignment(Qt::AlignRight | Qt::AlignVCenter);
-    h->addWidget(lbl);
-    auto *edit = new StyledLineEdit(dlg);
-    edit->setFixedSize(60, 22);
-    edit->setAlignment(Qt::AlignCenter);
-    edit->setText(def);
-    edit->setGrayInputMode(gray);
-    h->addWidget(edit);
-    h->addStretch();
-    valMap[label] = edit;
-    return row;
+    while (buf.size() >= 8 && framesProcessed < MAX_FRAMES) {
+        if (buf.left(4) != QByteArray::fromHex("FDB18540")) {
+            buf.remove(0, 1); continue;
+        }
+        QByteArray lenBytes = buf.mid(4, 4);
+        qint32 frameLen = (static_cast<quint8>(lenBytes[0]) << 24) |
+                          (static_cast<quint8>(lenBytes[1]) << 16) |
+                          (static_cast<quint8>(lenBytes[2]) << 8) |
+                           static_cast<quint8>(lenBytes[3]);
+        if (frameLen <= 85 || frameLen > 1024 * 1024) {
+            buf.remove(0, 4); continue;
+        }
+        if (buf.size() < frameLen) break;
+
+        QByteArray frameData = buf.left(frameLen);
+        buf.remove(0, frameLen);
+
+        FrameDataAnalysis analy;
+        STPackage pack;
+        pack.channelId = "serial_E";
+        pack.channelType = EChannelType::Serial;
+        pack.baDataRecv = frameData;
+
+        STParamInfo param{};
+        analy.parseData(pack, param);
+
+        // CRC16
+        int totalLen = frameData.size();
+        if (totalLen >= 10) {
+            quint16 calc = FrameDataAnalysis::crc16Xmodem(frameData, 4, totalLen - 10);
+            quint16 stored = (static_cast<quint8>(frameData[totalLen - 6]) << 8) |
+                              static_cast<quint8>(frameData[totalLen - 5]);
+            STParamItem crcItem;
+            crcItem.varParaValue = (calc == stored) ? "校验正确" : "校验错误";
+            param.mapParams["CRC校验"] = crcItem;
+        }
+
+        lastParam = param;
+        if (framesProcessed % EMIT_INTERVAL == 0)
+            emit dataProcessed(param);
+        ++framesProcessed;
+    }
+    if (framesProcessed > 0 && framesProcessed % EMIT_INTERVAL != 0)
+        emit dataProcessed(lastParam);
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-CopyFrameDialog::CopyFrameDialog(QWidget *parent) : QWidget(parent) { setupUi(); }
-CopyFrameDialog::~CopyFrameDialog() {}
+CopyFrameDialog::CopyFrameDialog(QWidget *parent)
+    : QWidget(parent)
+    , m_updateTimer(new QTimer(this))
+    , m_worker(new FrameCopyWorker())
+    , m_workerThread(new QThread(this))
+{
+    setupUi();
+    initWorkerThread();
+
+    m_updateTimer->setSingleShot(true);
+    m_updateTimer->setInterval(10);
+    connect(m_updateTimer, &QTimer::timeout, this, [this]() {
+        QMutexLocker lock(&m_cacheMutex);
+        if (m_dataCache.isEmpty()) return;
+        QByteArray data = m_dataCache;
+        m_dataCache.clear();
+        lock.unlock();
+        QMetaObject::invokeMethod(m_worker, "processData",
+            Qt::QueuedConnection, Q_ARG(QByteArray, data));
+    });
+}
+
+CopyFrameDialog::~CopyFrameDialog() {
+    m_workerThread->quit();
+    m_workerThread->wait();
+}
+
+void CopyFrameDialog::initWorkerThread()
+{
+    m_worker->moveToThread(m_workerThread);
+    connect(m_worker, &FrameCopyWorker::dataProcessed,
+            this, &CopyFrameDialog::setParam, Qt::QueuedConnection);
+    m_workerThread->start();
+}
+
+void CopyFrameDialog::appendData(const QByteArray &data)
+{
+    QMutexLocker lock(&m_cacheMutex);
+    m_dataCache.append(data);
+    m_updateTimer->start();
+}
+
+void CopyFrameDialog::clearPlaybackCache()
+{
+    QMutexLocker lock(&m_cacheMutex);
+    m_dataCache.clear();
+    m_updateTimer->stop();
+}
 
 void CopyFrameDialog::setParam(const STParamInfo &param)
 {
@@ -64,190 +127,331 @@ void CopyFrameDialog::setParam(const STParamInfo &param)
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-//  UI
+//  UI（保持原布局不变）
 // ═══════════════════════════════════════════════════════════════════════════
-
 void CopyFrameDialog::setupUi()
 {
     this->setWindowTitle("控制器测试帧解析结果");
-    this->setMinimumSize(1100, 520);
+    this->setStyleSheet(R"(
+        QWidget { background-color: #E0E0E0; font-family: "Microsoft YaHei", Arial, sans-serif; font-size: 12px; }
+        QLabel { color: #333333; font-weight: 500; }
+        QGroupBox { border: none; margin: 0; padding: 0; }
+        StyledLineEdit { border: 1px solid #B0B0B0; border-radius: 2px; }
+    )");
+    this->setMinimumSize(1000, 500);
 
-    auto *root = new QHBoxLayout(this);
-    root->setSpacing(8);
-    root->setContentsMargins(8, 8, 8, 8);
+    QWidget *centralWidget = new QWidget(this);
+    QHBoxLayout *mainLayout = new QHBoxLayout(centralWidget);
+    mainLayout->setSpacing(12);
+    mainLayout->setContentsMargins(12, 12, 12, 12);
 
-    auto *c1 = createColumn1(); c1->setMinimumWidth(90);
-    auto *c2 = createColumn2(); c2->setMinimumWidth(100);
-    auto *c3 = createColumn3(); c3->setMinimumWidth(100);
-    auto *c4 = createColumn4(); c4->setMinimumWidth(140);
-    auto *c5 = createCombinedColumn(); c5->setMinimumWidth(380);
+    QWidget *col1 = createColumn1(); col1->setMinimumWidth(100);
+    QWidget *col2 = createColumn2(); col2->setMinimumWidth(110);
+    QWidget *col3 = createColumn3(); col3->setMinimumWidth(110);
+    QWidget *col4 = createColumn4(); col4->setMinimumWidth(140);
+    QWidget *col5 = createCombinedColumn(); col5->setMinimumWidth(350);
 
-    root->addWidget(c1);
-    root->addWidget(c2);
-    root->addWidget(c3);
-    root->addWidget(c4);
-    root->addWidget(c5);
+    mainLayout->addWidget(col1);
+    mainLayout->addWidget(col2);
+    mainLayout->addWidget(col3);
+    mainLayout->addWidget(col4);
+    mainLayout->addWidget(col5);
+
+    QVBoxLayout *rootLayout = new QVBoxLayout(this);
+    rootLayout->setContentsMargins(0,0,0,0);
+    rootLayout->addWidget(centralWidget);
+    setLayout(rootLayout);
 }
 
 // ── 第1列：火保/解控 ─────────────────────────────────────────────────────
 QWidget* CopyFrameDialog::createColumn1()
 {
-    auto *w = new QWidget;
-    auto *v = new QVBoxLayout(w);
-    v->setSpacing(3); v->setContentsMargins(2, 2, 2, 2);
+    QWidget *widget = new QWidget;
+    QVBoxLayout *layout = new QVBoxLayout(widget);
+    layout->setSpacing(4);
+    layout->setContentsMargins(4, 4, 4, 4);
 
-    QStringList items = {
-        "火保K1","火保K2","火保K3","火保K4",
+    auto createLedItem = [&](const QString &text) {
+        QWidget *rowWidget = new QWidget;
+        QHBoxLayout *hLay = new QHBoxLayout(rowWidget);
+        hLay->setContentsMargins(0, 1, 0, 1);
+        hLay->setSpacing(6);
+
+        StyledLedLabel *led = new StyledLedLabel(this);
+        led->setOn(false); led->setSwitchable(false);
+        led->setDisabledLed(false); led->setFixedSize(20, 20);
+        hLay->addWidget(led, 0, Qt::AlignCenter | Qt::AlignVCenter);
+
+        QLabel *lbl = new QLabel(text);
+        lbl->setAlignment(Qt::AlignLeft | Qt::AlignVCenter);
+        lbl->setFixedWidth(70);
+        hLay->addWidget(lbl, 1);
+        hLay->addStretch();
+
+        m_ledMap[text] = led;
+        return rowWidget;
+    };
+
+    for (const QString &text : {"火保K1","火保K2","火保K3","火保K4",
         "火保1","火保2","火保3","火保4",
         "电爆继电器","非解控JKt","非解控JKbac",
-        "解控K1","解控K2","解控K3","解控K4",
-        "转发允释1"
-    };
-    for (auto& s : items) v->addWidget(makeLedRow(this, s, m_ledMap));
-    v->addStretch();
-    return w;
+        "解控K1","解控K2","解控K3","解控K4","转发允释1"})
+        layout->addWidget(createLedItem(text));
+
+    layout->addStretch();
+    return widget;
 }
 
 // ── 第2列：机构1/2/3 ─────────────────────────────────────────────────────
 QWidget* CopyFrameDialog::createColumn2()
 {
-    auto *w = new QWidget;
-    auto *v = new QVBoxLayout(w);
-    v->setSpacing(3); v->setContentsMargins(2, 2, 2, 2);
+    QWidget *widget = new QWidget;
+    QVBoxLayout *layout = new QVBoxLayout(widget);
+    layout->setSpacing(4);
+    layout->setContentsMargins(4, 4, 4, 4);
 
-    QStringList items = {
-        "机构1连接","机构1供气","机构1锁定","机构1释放主","机构1释放备",
-        "转发允释2",
-        "机构2连接","机构2供气","机构2锁定","机构2释放主","机构2释放备",
-        "机构3连接","机构3供气","机构3锁定","机构3释放主"
+    auto createLedItem = [&](const QString &text) {
+        QWidget *rowWidget = new QWidget;
+        QHBoxLayout *hLay = new QHBoxLayout(rowWidget);
+        hLay->setContentsMargins(0, 1, 0, 1);
+        hLay->setSpacing(6);
+
+        StyledLedLabel *led = new StyledLedLabel(this);
+        led->setOn(false); led->setSwitchable(false);
+        led->setDisabledLed(false); led->setFixedSize(20, 20);
+        hLay->addWidget(led, 0, Qt::AlignCenter | Qt::AlignVCenter);
+
+        QLabel *lbl = new QLabel(text);
+        lbl->setAlignment(Qt::AlignLeft | Qt::AlignVCenter);
+        lbl->setFixedWidth(80);
+        hLay->addWidget(lbl, 1);
+        hLay->addStretch();
+
+        m_ledMap[text] = led;
+        return rowWidget;
     };
-    for (auto& s : items) v->addWidget(makeLedRow(this, s, m_ledMap));
-    v->addStretch();
-    return w;
+
+    for (const QString &text : {"机构1连接","机构1供气","机构1锁定","机构1释放主","机构1释放备",
+        "转发允释2","机构2连接","机构2供气","机构2锁定","机构2释放主","机构2释放备",
+        "机构3连接","机构3供气","机构3锁定","机构3释放主"})
+        layout->addWidget(createLedItem(text));
+
+    layout->addStretch();
+    return widget;
 }
 
 // ── 第3列：机构4/电爆/火引爆 ─────────────────────────────────────────────
 QWidget* CopyFrameDialog::createColumn3()
 {
-    auto *w = new QWidget;
-    auto *v = new QVBoxLayout(w);
-    v->setSpacing(3); v->setContentsMargins(2, 2, 2, 2);
+    QWidget *widget = new QWidget;
+    QVBoxLayout *layout = new QVBoxLayout(widget);
+    layout->setSpacing(4);
+    layout->setContentsMargins(4, 4, 4, 4);
 
-    QStringList items = {
-        "机构3释放备",
-        "机构4连接","机构4供气","机构4锁定","机构4释放主","机构4释放备",
-        "电爆1","电爆2","电爆3","电爆4",
-        "火引爆1","火引爆2","火引爆3","火引爆4"
+    auto createLedItem = [&](const QString &text) {
+        QWidget *rowWidget = new QWidget;
+        QHBoxLayout *hLay = new QHBoxLayout(rowWidget);
+        hLay->setContentsMargins(0, 1, 0, 1);
+        hLay->setSpacing(6);
+
+        StyledLedLabel *led = new StyledLedLabel(this);
+        led->setOn(false); led->setSwitchable(false);
+        led->setDisabledLed(false); led->setFixedSize(20, 20);
+        hLay->addWidget(led, 0, Qt::AlignCenter | Qt::AlignVCenter);
+
+        QLabel *lbl = new QLabel(text);
+        lbl->setAlignment(Qt::AlignLeft | Qt::AlignVCenter);
+        lbl->setFixedWidth(80);
+        hLay->addWidget(lbl, 1);
+        hLay->addStretch();
+
+        m_ledMap[text] = led;
+        return rowWidget;
     };
-    for (auto& s : items) v->addWidget(makeLedRow(this, s, m_ledMap));
-    v->addStretch();
-    return w;
+
+    for (const QString &text : {"机构3释放备","机构4连接","机构4供气","机构4锁定",
+        "机构4释放主","机构4释放备","电爆1","电爆2","电爆3","电爆4",
+        "火引爆1","火引爆2","火引爆3","火引爆4"})
+        layout->addWidget(createLedItem(text));
+
+    layout->addStretch();
+    return widget;
 }
 
 // ── 第4列：帧参数 ────────────────────────────────────────────────────────
 QWidget* CopyFrameDialog::createColumn4()
 {
-    auto *w = new QWidget;
-    auto *v = new QVBoxLayout(w);
-    v->setSpacing(3); v->setContentsMargins(2, 2, 2, 2);
+    QWidget *widget = new QWidget;
+    QVBoxLayout *layout = new QVBoxLayout(widget);
+    layout->setSpacing(4);
+    layout->setContentsMargins(4, 4, 4, 4);
 
-    QStringList labels = {
-        "帧长","帧计数","帧类型","时间标志",
+    QStringList labels = {"帧长","帧计数","帧类型","时间标志",
         "火引爆时间","继电器关闭时","数字供电",
-        "驱动供电1","驱动供电2","5V1","5V2","5V3"
-    };
-    for (auto& s : labels) v->addWidget(makeValueRow(this, s, m_valueMap));
-    v->addStretch();
-    return w;
+        "驱动供电1","驱动供电2","5V1","5V2","5V3"};
+
+    for (const QString &labelText : labels) {
+        QWidget *rowWidget = new QWidget;
+        QHBoxLayout *rowLayout = new QHBoxLayout(rowWidget);
+        rowLayout->setContentsMargins(0, 1, 0, 1);
+        rowLayout->setSpacing(6);
+
+        QLabel *label = new QLabel(labelText);
+        label->setFixedWidth(75);
+        label->setAlignment(Qt::AlignRight | Qt::AlignVCenter);
+        rowLayout->addWidget(label);
+
+        StyledLineEdit *editBox = new StyledLineEdit(this);
+        editBox->setGrayInputMode(true);
+        editBox->setFixedSize(65, 22);
+        editBox->setAlignment(Qt::AlignCenter);
+        rowLayout->addWidget(editBox);
+        rowLayout->addStretch();
+
+        m_valueMap[labelText] = editBox;
+        layout->addWidget(rowWidget);
+    }
+
+    layout->addStretch();
+    return widget;
 }
 
-// ── 第5列：时序 + 校验 ───────────────────────────────────────────────────
+// ── 第5列：合并列 ────────────────────────────────────────────────────────
 QWidget* CopyFrameDialog::createCombinedColumn()
 {
-    auto *w = new QWidget;
-    auto *hbox = new QHBoxLayout(w);
-    hbox->setSpacing(6); hbox->setContentsMargins(2, 2, 2, 2);
+    QWidget *widget = new QWidget;
+    QHBoxLayout *combinedLayout = new QHBoxLayout(widget);
+    combinedLayout->setSpacing(10);
+    combinedLayout->setContentsMargins(4, 4, 4, 4);
 
-    // 左侧：4×12 时间输入框
-    auto *timeCol = new QWidget;
-    auto *tv = new QVBoxLayout(timeCol);
-    tv->setSpacing(3); tv->setContentsMargins(0,0,0,0);
+    // 1. 4列时间输入框
+    QWidget *inputBoxColumn = new QWidget;
+    QVBoxLayout *inputBoxLayout = new QVBoxLayout(inputBoxColumn);
+    inputBoxLayout->setSpacing(4);
+    inputBoxLayout->setContentsMargins(0,0,0,0);
     for (int i = 0; i < 12; ++i) {
-        auto *row = new QWidget;
-        auto *h = new QHBoxLayout(row);
-        h->setContentsMargins(0,0,0,0); h->setSpacing(3);
+        QWidget *rowWidget = new QWidget;
+        QHBoxLayout *rowLayout = new QHBoxLayout(rowWidget);
+        rowLayout->setContentsMargins(0, 1, 0, 1);
+        rowLayout->setSpacing(4);
+
         for (int j = 0; j < 4; ++j) {
-            auto *e = new StyledLineEdit(this);
-            e->setFixedSize(38, 22); e->setAlignment(Qt::AlignCenter);
-            QString key = QString("t%1_c%2").arg(i+1).arg(j+1);
-            m_valueMap[key] = e;
-            h->addWidget(e);
+            StyledLineEdit *editBox = new StyledLineEdit(this);
+            editBox->setGrayInputMode(false);
+            editBox->setFixedSize(42, 22);
+            editBox->setAlignment(Qt::AlignCenter);
+            rowLayout->addWidget(editBox);
+            m_valueMap[QString("t%1_c%2").arg(i+1).arg(j+1)] = editBox;
         }
-        tv->addWidget(row);
+        inputBoxLayout->addWidget(rowWidget);
     }
-    hbox->addWidget(timeCol);
+    combinedLayout->addWidget(inputBoxColumn);
 
-    // 中间：机构1电压标签
-    auto *voltCol = new QWidget;
-    auto *vv = new QVBoxLayout(voltCol);
-    vv->setSpacing(3); vv->setContentsMargins(0,0,0,0);
+    // 2. 机构1电压标签
+    QWidget *labelColumn = new QWidget;
+    QVBoxLayout *labelLayout = new QVBoxLayout(labelColumn);
+    labelLayout->setSpacing(4);
+    labelLayout->setContentsMargins(0,0,0,0);
     for (int i = 1; i <= 12; ++i) {
-        auto *lbl = new QLabel(QString("机构1电压%1").arg(i));
-        lbl->setFixedSize(80, 22);
-        lbl->setAlignment(Qt::AlignRight | Qt::AlignVCenter);
-        vv->addWidget(lbl);
+        QLabel *voltageLabel = new QLabel(QString("机构1电压%1").arg(i));
+        voltageLabel->setFixedSize(85, 22);
+        voltageLabel->setAlignment(Qt::AlignRight | Qt::AlignVCenter);
+        labelLayout->addWidget(voltageLabel);
     }
-    hbox->addWidget(voltCol);
+    combinedLayout->addWidget(labelColumn);
 
-    // 右侧：帧长/校验/帧类型/工作模式/命令码
-    auto *rightCol = new QWidget;
-    auto *grid = new QGridLayout(rightCol);
-    grid->setSpacing(3); grid->setContentsMargins(4,0,4,0);
-    grid->setAlignment(Qt::AlignTop);
+    // 3. 右侧状态控件
+    QWidget *statusColumn = new QWidget;
+    QGridLayout *statusLayout = new QGridLayout(statusColumn);
+    statusLayout->setSpacing(4);
+    statusLayout->setContentsMargins(0,0,0,0);
+    statusLayout->setHorizontalSpacing(8);
+    statusLayout->setVerticalSpacing(2);
+    statusLayout->setAlignment(Qt::AlignTop);
 
-    // 帧长 + 校验结果（第0行标签，第1行输入框）
-    auto addRow = [&](int row, const QString& label, const QString& key,
-                      const QString& def = "0", bool gray = false) {
-        auto *k = new QLabel(label);
-        k->setAlignment(Qt::AlignCenter);
-        auto *v = new StyledLineEdit(this);
-        v->setFixedSize(50, 22); v->setAlignment(Qt::AlignCenter);
-        v->setText(def); v->setGrayInputMode(gray);
-        m_valueMap[key] = v;
-        grid->addWidget(k, row, 0);
-        grid->addWidget(v, row, 1);
+    const int EDIT_SMALL_WIDTH = 65;
+    const int EDIT_LARGE_WIDTH = 85;
+    const int ROW_HEIGHT = 22;
+    const int LABEL_WIDTH = 70;
+
+    // 帧长/校验结果
+    QLabel *lblFrameLen = new QLabel("帧长");
+    lblFrameLen->setAlignment(Qt::AlignCenter);
+    lblFrameLen->setFixedWidth(EDIT_SMALL_WIDTH);
+    statusLayout->addWidget(lblFrameLen, 0, 0);
+
+    QLabel *lblCheck = new QLabel("校验结果");
+    lblCheck->setAlignment(Qt::AlignCenter);
+    lblCheck->setFixedWidth(EDIT_LARGE_WIDTH);
+    statusLayout->addWidget(lblCheck, 0, 1);
+
+    StyledLineEdit *e1 = new StyledLineEdit(this);
+    e1->setGrayInputMode(false); e1->setText("0");
+    e1->setFixedSize(EDIT_SMALL_WIDTH, ROW_HEIGHT);
+    e1->setAlignment(Qt::AlignCenter);
+    statusLayout->addWidget(e1, 1, 0);
+    m_valueMap["测试帧_帧长"] = e1;
+
+    StyledLineEdit *e2 = new StyledLineEdit(this);
+    e2->setGrayInputMode(false);
+    e2->setFixedSize(EDIT_LARGE_WIDTH, ROW_HEIGHT);
+    e2->setAlignment(Qt::AlignCenter);
+    statusLayout->addWidget(e2, 1, 1);
+    m_valueMap["测试帧_校验"] = e2;
+
+    // 帧类型/工作模式/继电器状态/命令码
+    QList<QPair<QString, QString>> items = {
+        {"帧类型", "7B"}, {"工作模式", "0"}, {"继电器状态", "0"}, {"命令码", "0"}
     };
+    for (int i = 0; i < items.size(); ++i) {
+        int row = 2 + i;
+        auto &item = items[i];
 
-    addRow(0, "帧长",   "测试帧_帧长");
-    addRow(1, "校验",   "测试帧_校验", "", true);
+        StyledLineEdit *edit = new StyledLineEdit(this);
+        edit->setText(item.second);
+        edit->setFixedSize(EDIT_SMALL_WIDTH, ROW_HEIGHT);
+        edit->setAlignment(Qt::AlignCenter);
+        edit->setGrayInputMode(item.first != "帧类型");
+        statusLayout->addWidget(edit, row, 0);
+        m_valueMap[QString("测试帧_%1").arg(item.first)] = edit;
 
-    // 分隔横线
-    auto *line = new QFrame;
-    line->setFrameShape(QFrame::HLine);
-    grid->addWidget(line, 2, 0, 1, 2);
+        StyledLineEdit *checkEdit = new StyledLineEdit(this);
+        checkEdit->setFixedSize(EDIT_LARGE_WIDTH, ROW_HEIGHT);
+        checkEdit->setAlignment(Qt::AlignCenter);
+        checkEdit->setGrayInputMode(true);
+        statusLayout->addWidget(checkEdit, row, 1);
+        m_valueMap[QString("测试帧_%1_校验").arg(item.first)] = checkEdit;
 
-    addRow(3, "帧类型", "测试帧_帧类型", "7B");
-    addRow(4, "工作模式", "测试帧_工作模式", "", true);
-    addRow(5, "继电器状态","测试帧_继电器", "", true);
-    addRow(6, "命令码", "测试帧_命令码", "", true);
+        QLabel *lab = new QLabel(item.first);
+        lab->setFixedSize(LABEL_WIDTH, ROW_HEIGHT);
+        lab->setAlignment(Qt::AlignRight | Qt::AlignVCenter);
+        statusLayout->addWidget(lab, row, 2);
+    }
 
-    hbox->addWidget(rightCol);
-    return w;
+    int placeholderStartRow = 2 + items.size();
+    for (int i = placeholderStartRow; i < 12; ++i) {
+        QWidget *p = new QWidget;
+        p->setFixedHeight(ROW_HEIGHT);
+        statusLayout->addWidget(p, i, 0, 1, 3);
+    }
+
+    combinedLayout->addWidget(statusColumn);
+    return widget;
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-//  数据映射
+//  数据映射（A6 + A5 兼容）
 // ═══════════════════════════════════════════════════════════════════════════
 void CopyFrameDialog::updateData(const STParamInfo& param)
 {
-    auto setLed = [&](const QString& key, bool on) {
-        auto it = m_ledMap.find(key);
+    auto setLed = [&](const QString& k, bool on) {
+        auto it = m_ledMap.find(k);
         if (it != m_ledMap.end()) it.value()->setOn(on);
     };
-    auto setVal = [&](const QString& key, const QString& val) {
-        auto it = m_valueMap.find(key);
+    auto setVal = [&](const QString& k, const QString& v) {
+        auto it = m_valueMap.find(k);
         if (it != m_valueMap.end()) {
-            it.value()->setText(val);
+            it.value()->setText(v);
             it.value()->setGrayInputMode(false);
         }
     };
@@ -259,177 +463,118 @@ void CopyFrameDialog::updateData(const STParamInfo& param)
 
         // ── 公共帧头 ──
         if (key == "FrameLength") {
-            auto v = item.varParaValue.toUInt();
+            quint32 v = item.varParaValue.toUInt();
             setVal("帧长", QString::number(v));
             setVal("测试帧_帧长", QString::number(v));
         }
-        else if (key == "FrameCount") {
-            setVal("帧计数", item.varParaValue.toString());
-        }
+        else if (key == "FrameCount") setVal("帧计数", item.varParaValue.toString());
         else if (key == "FrameType") {
-            auto raw = item.varParaValue.toUInt();
-            setVal("帧类型", QString::number(raw, 16).toUpper());
-            setVal("测试帧_帧类型", QString::number(raw, 16).toUpper());
+            quint32 r = item.varParaValue.toUInt();
+            setVal("帧类型", QString::number(r, 16).toUpper());
+            setVal("测试帧_帧类型", QString::number(r, 16).toUpper());
         }
-        else if (key == "TimeFlag") {
-            setVal("时间标志", item.varParaValue.toString());
-        }
+        else if (key == "TimeFlag") setVal("时间标志", item.varParaValue.toString());
+        else if (key == "CRC校验") setVal("测试帧_校验", item.varParaValue.toString());
 
         // ── 火保 ──
-        else if (key == "InitiatorProtectionStatus1") {
-            quint8 raw = item.varParaValue.toUInt();
-            setLed("火保K1", raw & 0x01);
-            setLed("火保K2", raw & 0x02);
-            setLed("火保K3", raw & 0x04);
-            setLed("火保K4", raw & 0x08);
+        else if (key == "InitiatorProtectionStatus1" || key == "OE_KJ7") {
+            quint8 r = item.varParaValue.toUInt();
+            setLed("火保K1", r&0x01); setLed("火保K2", r&0x02);
+            setLed("火保K3", r&0x04); setLed("火保K4", r&0x08);
         }
-        else if (key == "InitiatorProtectionStatus2") {
-            quint8 raw = item.varParaValue.toUInt();
-            setLed("火保1", raw & 0x01);
-            setLed("火保2", raw & 0x02);
-            setLed("火保3", raw & 0x04);
-            setLed("火保4", raw & 0x08);
+        else if (key == "InitiatorProtectionStatus2" || key == "OE_KJ8") {
+            quint8 r = item.varParaValue.toUInt();
+            setLed("火保1", r&0x01); setLed("火保2", r&0x02);
+            setLed("火保3", r&0x04); setLed("火保4", r&0x08);
         }
 
         // ── 解控 ──
-        else if (key == "UncontrolStatus") {
-            quint8 raw = item.varParaValue.toUInt();
-            setLed("电爆继电器", raw & 0x40);
-            setLed("非解控JKt",   !(raw & 0x20));
-            setLed("非解控JKbac", !(raw & 0x10));
-            setLed("解控K1", raw & 0x01);
-            setLed("解控K2", raw & 0x02);
-            setLed("解控K3", raw & 0x04);
-            setLed("解控K4", raw & 0x08);
+        else if (key == "UncontrolStatus" || key == "OE_KJ9") {
+            quint8 r = item.varParaValue.toUInt();
+            setLed("电爆继电器", r&0x40);
+            setLed("非解控JKt",   !(r&0x20));
+            setLed("非解控JKbac", !(r&0x10));
+            setLed("解控K1", r&0x01); setLed("解控K2", r&0x02);
+            setLed("解控K3", r&0x04); setLed("解控K4", r&0x08);
         }
 
-        // ── 机构状态（A5） ──
-        else if (key == "SolenoidValveStatus1") {
-            quint8 raw = item.varParaValue.toUInt();
-            setLed("机构1连接",   raw & 0x40);
-            setLed("机构1释放主", raw & 0x01);
-            setLed("机构1释放备", raw & 0x02);
-            setLed("机构1锁定",   raw & 0x04);
-            setLed("机构1供气",   raw & 0x10);
+        // ── 机构 ──
+        else if (key == "SolenoidValveStatus1" || key == "OE_KJ1") {
+            quint8 r = item.varParaValue.toUInt();
+            setLed("机构1连接", r&0x40); setLed("机构1释放主", r&0x01);
+            setLed("机构1释放备", r&0x02); setLed("机构1锁定", r&0x04); setLed("机构1供气", r&0x10);
         }
-        else if (key == "SolenoidValveStatus2") {
-            quint8 raw = item.varParaValue.toUInt();
-            setLed("转发允释2",   raw & 0x80);
-            setLed("机构2释放主", raw & 0x01);
-            setLed("机构2释放备", raw & 0x02);
-            setLed("机构2锁定",   raw & 0x04);
-            setLed("机构2供气",   raw & 0x10);
+        else if (key == "SolenoidValveStatus2" || key == "OE_KJ2") {
+            quint8 r = item.varParaValue.toUInt();
+            setLed("转发允释2", r&0x80); setLed("机构2释放主", r&0x01);
+            setLed("机构2释放备", r&0x02); setLed("机构2锁定", r&0x04); setLed("机构2供气", r&0x10);
         }
-        else if (key == "SolenoidValveStatus3") {
-            quint8 raw = item.varParaValue.toUInt();
-            setLed("机构3连接",   raw & 0x40);
-            setLed("机构3释放主", raw & 0x01);
-            setLed("机构3释放备", raw & 0x02);
-            setLed("机构3锁定",   raw & 0x04);
-            setLed("机构3供气",   raw & 0x10);
+        else if (key == "SolenoidValveStatus3" || key == "OE_KJ4") {
+            quint8 r = item.varParaValue.toUInt();
+            setLed("机构3连接", r&0x40); setLed("机构3释放主", r&0x01);
+            setLed("机构3释放备", r&0x02); setLed("机构3锁定", r&0x04); setLed("机构3供气", r&0x10);
         }
-        else if (key == "SolenoidValveStatus4") {
-            quint8 raw = item.varParaValue.toUInt();
-            setLed("机构4连接",   raw & 0x40);
-            setLed("机构4释放主", raw & 0x01);
-            setLed("机构4释放备", raw & 0x02);
-            setLed("机构4锁定",   raw & 0x04);
-            setLed("机构4供气",   raw & 0x10);
+        else if (key == "SolenoidValveStatus4" || key == "OE_KJ5") {
+            quint8 r = item.varParaValue.toUInt();
+            setLed("机构4连接", r&0x40); setLed("机构4释放主", r&0x01);
+            setLed("机构4释放备", r&0x02); setLed("机构4锁定", r&0x04); setLed("机构4供气", r&0x10);
         }
 
         // ── 电爆 + 火引爆 ──
-        else if (key == "InitiatorDetonateRelayStatus") {
-            quint8 raw = item.varParaValue.toUInt();
-            setLed("火引爆1", raw & 0x01);
-            setLed("火引爆2", raw & 0x02);
-            setLed("火引爆3", raw & 0x04);
-            setLed("火引爆4", raw & 0x08);
+        else if (key == "InitiatorDetonateRelayStatus" || key == "OE_KJ10") {
+            quint8 r = item.varParaValue.toUInt();
+            setLed("火引爆1", r&0x01); setLed("火引爆2", r&0x02);
+            setLed("火引爆3", r&0x04); setLed("火引爆4", r&0x08);
+            setLed("电爆1", r&0x10); setLed("电爆2", r&0x20);
+            setLed("电爆3", r&0x40); setLed("电爆4", r&0x80);
         }
-        else if (key == "ReleasePermitAndPowerStatus") {
-            quint8 raw = item.varParaValue.toUInt();
-            setLed("转发允释1", raw & 0x80);
-        }
+        else if (key == "ReleasePermitAndPowerStatus")
+            setLed("转发允释1", item.varParaValue.toUInt() & 0x80);
 
-        // ── 电压/温度 ──
-        else if (key == "DigitalPowerVoltage") {
-            setVal("数字供电", item.varParaValue.toString());
-        }
-        else if (key == "DrivePowerVoltage1") {
-            setVal("驱动供电1", item.varParaValue.toString());
-        }
-        else if (key == "DrivePowerVoltage2") {
-            setVal("驱动供电2", item.varParaValue.toString());
-        }
-        else if (key == "Digital5V1") {
-            setVal("5V1", item.varParaValue.toString());
-        }
-        else if (key == "Digital5V2") {
-            setVal("5V2", item.varParaValue.toString());
-        }
-        else if (key == "Digital5V3") {
-            setVal("5V3", item.varParaValue.toString());
+        // ── 电压 ──
+        else if (key == "DigitalPowerVoltage") setVal("数字供电", item.varParaValue.toString());
+        else if (key == "DrivePowerVoltage1")  setVal("驱动供电1", item.varParaValue.toString());
+        else if (key == "DrivePowerVoltage2")  setVal("驱动供电2", item.varParaValue.toString());
+        else if (key == "Digital5V1")          setVal("5V1", item.varParaValue.toString());
+        else if (key == "Digital5V2")          setVal("5V2", item.varParaValue.toString());
+        else if (key == "Digital5V3")          setVal("5V3", item.varParaValue.toString());
+        else if (key == "AIN8")  { double v=item.varParaValue.toUInt()*0.75656; setVal("数字供电",QString::number(v,'f',2)); }
+        else if (key == "AIN9") { double v=item.varParaValue.toUInt()*0.75656; setVal("驱动供电1",QString::number(v,'f',2)); }
+        else if (key == "AIN9_2"){ double v=item.varParaValue.toUInt()*0.75656; setVal("驱动供电2",QString::number(v,'f',2)); }
+        else if (key=="AIN10"||key=="AIN12"||key=="AIN13") {
+            double v = item.varParaValue.toUInt() * 0.0293;
+            setVal(key=="AIN10"?"5V1":key=="AIN12"?"5V2":"5V3", QString::number(v,'f',2));
         }
 
         // ── 时间 ──
-        else if (key == "InitiatorDetonateTime") {
-            setVal("火引爆时间", item.varParaValue.toString());
-        }
-        else if (key == "InitiatorDetonateRelayCloseTime") {
+        else if (key == "InitiatorDetonateTime") setVal("火引爆时间", item.varParaValue.toString());
+        else if (key == "InitiatorDetonateRelayCloseTime" || key == "InitiatorRelayCloseTime")
             setVal("继电器关闭时", item.varParaValue.toString());
-        }
 
         // ── 工作模式 ──
         else if (key == "WorkMode") {
-            quint8 raw = item.varParaValue.toUInt();
-            QString mode;
-            switch (raw) {
-            case 0xAA: mode = "测试模式"; break;
-            case 0xBB: mode = "手动模式"; break;
-            case 0xCC: mode = "自动模式"; break;
-            default:   mode = QString::number(raw, 16); break;
+            quint8 r = item.varParaValue.toUInt();
+            QString m;
+            switch (r) {
+            case 0xAA: m="测试模式"; break; case 0xBB: m="手动模式"; break;
+            case 0xCC: m="自动模式"; break; default: m=QString::number(r,16); break;
             }
-            setVal("测试帧_工作模式", mode);
+            setVal("测试帧_工作模式", m);
         }
 
-        // ── 命令码（A5：两个独立字节 / A6：UInt16） ──
-        else if (key == "CommandCodeHigh") {
+        // ── 命令码 ──
+        else if (key == "CommandCodeHigh")
             setVal("测试帧_命令码", item.varParaValue.toString());
-        }
-        else if (key == "CommandCode") {
-            quint16 raw = item.varParaValue.toUInt();
-            setVal("测试帧_命令码", QString::number(raw, 16).toUpper());
-        }
+        else if (key == "CommandCode")
+            setVal("测试帧_命令码", QString::number(item.varParaValue.toUInt(), 16).toUpper());
 
-        // ── FPGAID ──
+        // ── FPGAID → 继电器 ──
         else if (key == "FPGAID") {
-            quint8 raw = item.varParaValue.toUInt();
-            QString id;
-            switch (raw) {
-            case 0xAA: id = "FPGA1"; break;
-            case 0xBB: id = "FPGA2"; break;
-            case 0xCC: id = "FPGA3"; break;
-            default:   id = QString::number(raw, 16); break;
-            }
-            setVal("测试帧_继电器", id);
+            quint8 r = item.varParaValue.toUInt(); QString id;
+            switch(r){case 0xAA:id="FPGA1";break;case 0xBB:id="FPGA2";break;case 0xCC:id="FPGA3";break;default:id=QString::number(r,16);}
+            setVal("测试帧_继电器状态", id);
         }
-
-        // ── SolenoidValveRelayPath (A6) ──
-        else if (key == "SolenoidValveRelayPath") {
-            setVal("测试帧_继电器", item.varParaValue.toString());
-        }
-
-        // ── 机构1/2释放状态 ──
-        else if (key == "Mechanism1_2ReleaseStatus") {
-            quint8 raw = item.varParaValue.toUInt();
-            // bit解析根据A5协议定义
-        }
-        else if (key == "Mechanism3_4ReleaseStatus") {
-            quint8 raw = item.varParaValue.toUInt();
-        }
-
-        // ── 解锁/释放/火引爆时序（5机构 × 5时间）──
-        else if (key.startsWith("Mechanism") && key.endsWith("UnlockTime")) {
-            // 已经在 ControllerPanel 中详细处理，此处省略避免膨胀
-        }
+        else if (key == "SolenoidValveRelayPath")
+            setVal("测试帧_继电器状态", item.varParaValue.toString());
     }
 }

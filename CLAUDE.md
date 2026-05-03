@@ -16,84 +16,99 @@ mingw32-make -j$(nproc)
 # Clean
 mingw32-make clean
 
-# The output binary goes to bin/Restricting_Release_Control.exe
-# Config files are loaded from bin/config/Info.ini at runtime
+# Output: bin/Restricting_Release_Control.exe
+# Config: bin/config/Info.ini loaded at runtime
 ```
 
-- Requires Qt 5.12.9+ (Core, GUI, Widgets, SerialPort, XML, PrintSupport, Script modules)
-- MinGW 64-bit on Windows; GCC on Linux / 银河麒麟 V10 (x86_64 + aarch64)
-- C++17 required (`CONFIG += c++17`)
+- Requires Qt 5.12.9+ (Core, GUI, Widgets, SerialPort, XML, PrintSupport, Script)
+- MinGW 64-bit (Windows) / GCC (Linux / 银河麒麟 V10 x86_64 + aarch64)
+- C++17 required
 
 ## Project Overview
 
-**牵制释放终端软件** — A Qt desktop application for monitoring and controlling a rocket/missile launch restricting-and-release system. Communicates with multiple hardware controllers over TCP, UDP multicast, and serial ports simultaneously.
+**牵制释放终端软件** — Qt desktop application for monitoring and controlling a rocket/missile launch restricting-and-release system. Communicates with multiple hardware controllers over TCP, UDP multicast, and serial ports simultaneously. Two protocol variants (A5 = 428 bytes, A6 = 97 bytes) can arrive on the same channel, distinguished by data length.
 
 ## Architecture
 
 ### Layer Stack
 
 ```
-UI Layer (view/)                      — Qt Widgets, panels, dialogs
+UI Layer (view/)                      — Widgets, panels, dialogs
     ↓ STParamInfo (parsed data)
 DataInteractionManager (CustomMessage/) — Singleton mediating UI ↔ communication
     ↓ IEvent (Qt custom events)
 Data Processing (DataProcess/)        — Analysis, frame building, scheduled sends
     ↓ STPackage (raw frames)
-CommManager (CommManager.h/.cpp)      — Facade over all channels + processor
+CommManager                           — Facade over all channels + processor
     ↓
 Communication Channels (LogicCommunication/) — TCP, UDP Multicast, Serial
 ```
 
-### Threading Model
+### Multi-Protocol Routing
 
-- **IO threads**: Each channel (TCP/UDP/Serial) has its own IO thread calling `CommDataProcessor::enqueue()` 
-- **Lock-free queue**: `moodycamel::ConcurrentQueue` — multi-producer, single consumer dispatch
-- **Thread pool**: `BS::thread_pool` (size = CPU core count) processes parsed frames
-- **Qt main thread**: All UI updates happen via `QCoreApplication::postEvent` (custom `IEvent` objects)
-- **ScheduledSendService**: Worker thread with `QTimer` instances for periodic frame sending
-- **Worker threads** in `ControllerPanel`/`LaunchFrameDialog`/`LaunchProcessDialog`: Each has a dedicated `QThread` for frame parsing, using batched merge-and-emit to avoid flooding the UI thread.
+Both A5 (428 bytes) and A6 (97 bytes) arrive on `serial_E` with identical frame header `0xFDB18540`. `MessageFrameConfig::findFrameFormat(channelId, dataLength)` selects the correct format by exact frame size. `CommDataProcessor::process()` iterates all parsers and accepts the first one whose `mapParams` is non-empty after parsing.
+
+### Frame Data Flow (Three Parallel Workers)
+
+```
+ControllerPanel::appendData()          LaunchFrameDialog::appendData()      LaunchProcessDialog::appendData()
+  → m_dataCache (QMutex)                 → m_dataCache                        → m_dataCache
+  → m_updateTimer (10ms)                 → m_updateTimer                      → m_updateTimer
+  → onTimerTimeout()                     → onTimerTimeout()                   → onTimerTimeout()
+  → worker::processData(data)            → worker::processData(data)          → worker::processData(data)
+```
+
+Each worker's `processData()`:
+1. Iterates accumulated buffer, extracts frames by header `0xFDB18540` + big-endian frame length
+2. Calls `FrameDataAnalysis::parseData()` per frame → `paramProcess()` (or `paramProcess_A6()` for A6 frames)
+3. Computes CRC16/XMODEM on bytes 4..total-10, compares with stored CRC at total-6..total-5
+4. Saves result in `editValues["校验结果"]` = "校验正确" / "校验错误"
+5. Emits `dataProcessed` every `EMIT_INTERVAL=5` frames (throttled), capped at `MAX_FRAMES=100`
+6. Always emits the last processed frame after the loop
 
 ### Key Components
 
-- **`CommManager`** (src/CommManager.h): Singleton facade. Registers parsers/processors, adds channels, manages lifecycle. Channels are identified by string `channelId`.
+- **`CommManager`**: Singleton facade. Registers parsers/processors, manages channel lifecycle. Signals `channelStateChanged(channelId, state)` for connection monitoring. Supports runtime channel update via `updateTcpChannel()` / `updateUdpMulticastChannel()` / `updateSerialChannel()` (remove + add pattern).
 
-- **`CommDataProcessor`** (src/DataProcess/CommDataProcessor.h): Central processing hub. Uses moodycamel ConcurrentQueue + BS::thread_pool. Iterates all registered parsers, calling each `canHandle()` then `reciveData()`. Accepts the first parser whose parse result (`mapParams`) is non-empty. Falls through to next parser if parsing fails.
+- **`MessageFrameConfig`**: Singleton. Stores `QMap<QString, QList<STFrameFormat>>` — one channelId maps to multiple frame formats. `findFrameFormat(channelId, dataLength)` matches by `fixedLength && totalBytes == dataLength`.
 
-- **`MessageFrameConfig`** (src/DataProcess/MessageFrameConfig.h): Singleton. Stores frame formats per channelId. **Supports multiple formats per channelId** via `QMap<QString, QList<STFrameFormat>>`. The key method `findFrameFormat(channelId, dataLength)` matches frames by **exact data length** (`fixedLength && totalBytes == dataLength`), enabling the same channel to handle different protocols (e.g. A5 at 428 bytes, A6 at 97 bytes on `serial_E`).
+- **`FrameDataAnalysis`**: Primary parser. Static method `crc16Xmodem(data, start, len)` provides CRC16/XMODEM verification (polynomial 0x1021, init 0x0000, table-based).
 
-- **`FrameDataAnalysis`** (src/DataProcess/DataAnalysis/FrameDataAnalysis.h): The primary parser. Uses `MessageFrameConfig::findFrameFormat()` to select the correct format by received data length. Each format can have independent `bigEndian` setting. Field-level parsing uses the format's endianness.
+- **`RemoteSettingWidget`**: TCP/UDP parameters can be hot-applied. Saves to Info.ini via `ConfigHelper::setValue()`, then calls `CommManager::updateXxxChannel()`.
 
-- **`DataInteractionManager`** (src/CustomMessage/DataInteractionManager.h): Singleton that bridges communication layer to UI. Uses Qt custom events (`postEvent`) to deliver parsed data to main thread. UI subscribes via `MessageHandle`.
+- **MainWindow**: CEC status LED reflects TCP remote connection (green/gray). 远控记录 QTextEdit logs connection/disconnection events with timestamps (transition-only, using `static prevState`). Right-click "清除记录" context menu.
 
-- **`ScheduledSendService`** (src/DataProcess/ScheduledSendService.h): Manages periodic data sending tasks in a dedicated worker thread (QTimer-based). Supports custom lambda frame builders or automatic frame construction via `FrameDataBuilder`.
+### UI Widget Mapping Pattern
 
-- **`ICommChannel`** (src/LogicCommunication/ICommChannel.h): Interface with `start()`, `stop()`, `send()`, state callbacks. Implementations: TCP (with auto-reconnect), UDP multicast (with join/leave), Serial (Qt SerialPort).
+All data display widgets (ControllerPanel, LaunchFrameDialog, LaunchProcessDialog, CopyFrameDialog) follow:
+- `m_ledMap[QString]` = `StyledLedLabel*` for status indicators
+- `m_valueMap[QString]` = `StyledLineEdit*` for value display
+- `updateControllerFrameUI()` iterates received maps and updates matching widgets
+- Unknown keys are silently ignored
 
-- **UI layer** (view/): Main window with `ControllerPanel` (core panel), `EmissionTab` (3 controller tabs), `LaunchProcessDialog`, `LaunchFrameDialog`, data playback dialogs, and various indicator widgets.
+**CopyFrameDialog (测试帧)**: Embedded as a tab in EmissionTab. Uses `setParam()` which calls `updateData()` immediately. Maps A5/A6 field IDs directly to LEDs and value fields.
 
-### Data Replay (DataPlaybackDialog)
+### Data Replay
 
-- **`DataReadWorker`** reads raw binary files in a worker thread, emits `rawDataReady(batchBuffer)` via `Qt::QueuedConnection`
-- **`DataPlaybackDialog::onRawDataReady()`** manually parses frames from the buffer: searches for header `0xFDB18540`, reads 4-byte big-endian frame length, extracts complete frames
-- Frames are routed by length: 428 → A5 (sent to all 3 targets), other → A6 (sent to LaunchProcess + LaunchFrameDialog only)
-- Targets (`ControllerPanel`/`LaunchFrameDialog`/`LaunchProcessDialog`) receive data via `appendData()` → debounce timer → worker `processData()`
-- Each worker's `processData()` has a **multi-frame extraction loop** with frame count limit (`MAX_FRAMES = 100`), **merges results from all processed frames**, and **emits once** with merged state. This prevents UI thread flooding.
-- On stop: `m_playbackActive` flag discards lingering signals; `clearPlaybackCache()` clears caches and stops timers in all three targets.
+- `DataReadWorker` reads binary files, emits `rawDataReady(batchBuffer)`
+- `DataPlaybackDialog::onRawDataReady()` parses frames (header `0xFDB18540` + big-endian length), routes by frame length
+- `m_playbackActive` flag + `clearPlaybackCache()` slots prevent lingering signals after stop
 
-### Configuration
+### Configuration Files
 
-- `bin/config/Info.ini` — All runtime config (IPs, ports, serial params, channel names)
-- `bin/config/MessageFrame.json` — Message frame definitions (multiple formats per channelId supported)
-- `ConfigHelper` singleton reads from INI, used throughout
+- `bin/config/Info.ini` — IPs, ports, serial params, channel names
+- `bin/config/MessageFrame.json` — Frame format definitions per channelId
+- `bin/config/coeff_config.ini` — Collection coefficient formulas
+- `bin/config/criteria_config.ini` — Param range criteria
 
 ### Third-Party Dependencies (header-only)
 
 | Library | Path | Purpose |
 |---------|------|---------|
-| asio | thirdParty/asio/ | Standalone async networking |
+| asio | thirdParty/asio/ | Async networking |
 | moodycamel::ConcurrentQueue | thirdParty/concurrentqueue-master/ | Lock-free MPSC queue |
-| BS::thread_pool | thirdParty/BS_thread_pool/ | Thread pool for data processing |
-| spdlog | thirdParty/spdlog/ | Logging (header-only mode) |
+| BS::thread_pool | thirdParty/BS_thread_pool/ | Thread pool |
+| spdlog | thirdParty/spdlog/ | Logging |
 | nlohmann/json | thirdParty/nlohmann/ | JSON parsing |
 | fast-cpp-csv-parser | thirdParty/fast-cpp-csv-parser-master/ | CSV reading |
-| QCustomPlot | src/chart/qcustomplot.h | Charting widget |
+| QCustomPlot | src/chart/qcustomplot.h | Charting |

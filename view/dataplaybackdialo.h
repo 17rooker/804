@@ -22,6 +22,7 @@
 class LaunchFrameDialog;
 class ControllerPanel ;
 class LaunchProcessDialog;
+class CopyFrameDialog;
 class DataReadWorker : public QObject
 {
     Q_OBJECT
@@ -73,6 +74,7 @@ public:
     static void destroyInstance();
     void setControllerPanelDialog(ControllerPanel *dialog);
     void setLaunchProcessDialog(LaunchProcessDialog *dialog);
+    void setCopyFrameDialog(CopyFrameDialog *dialog);
 
     void setLaunchFrameDialog(LaunchFrameDialog *dialog);
 private slots:
@@ -103,6 +105,7 @@ private:
     LaunchFrameDialog *m_launchFrameDialog = nullptr;
     ControllerPanel *m_dataPanel=nullptr;
     LaunchProcessDialog*m_LaunchProcess=nullptr;
+    CopyFrameDialog *m_copyFrameDialog = nullptr;
     bool m_hasSentCollectorData = false;
     // UI控件
     QLineEdit *m_fileEdit;

@@ -3,9 +3,22 @@
 
 #include <QWidget>
 #include <QMap>
+#include <QMutex>
+#include <QByteArray>
 #include "src/Common/StructDefine.h"
 class StyledLedLabel;
 class StyledLineEdit;
+class QTimer;
+class QThread;
+
+class FrameCopyWorker : public QObject
+{
+    Q_OBJECT
+public slots:
+    void processData(const QByteArray &data);
+signals:
+    void dataProcessed(const STParamInfo &param);
+};
 
 class CopyFrameDialog : public QWidget
 {
@@ -17,20 +30,31 @@ public:
 
 public slots:
     void setParam(const STParamInfo& param);
+    void appendData(const QByteArray &data);
+    void clearPlaybackCache();
 
 private:
     void setupUi();
-    QWidget* createColumn1();    // 火保/解控状态灯
-    QWidget* createColumn2();    // 机构1/2/3状态灯
-    QWidget* createColumn3();    // 机构4/电爆/火引爆状态灯
-    QWidget* createColumn4();    // 帧参数输入框
-    QWidget* createCombinedColumn(); // 时序+校验列
-
+    QWidget* createColumn1();
+    QWidget* createColumn2();
+    QWidget* createColumn3();
+    QWidget* createColumn4();
+    QWidget* createCombinedColumn();
     void updateData(const STParamInfo& param);
+    void initWorkerThread();
 
-    QMap<QString, StyledLedLabel*>  m_ledMap;
-    QMap<QString, StyledLineEdit*>  m_valueMap;
+    // UI 控件映射
+    QMap<QString, StyledLedLabel*> m_ledMap;
+    QMap<QString, StyledLineEdit*> m_valueMap;
+
     STParamInfo m_param;
+
+    // 回放
+    QByteArray   m_dataCache;
+    QMutex       m_cacheMutex;
+    QTimer      *m_updateTimer = nullptr;
+    QThread     *m_workerThread = nullptr;
+    FrameCopyWorker *m_worker = nullptr;
 };
 
 #endif // CopyFrameDialog_H
