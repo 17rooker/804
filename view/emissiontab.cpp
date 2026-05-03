@@ -269,6 +269,11 @@ void EmissionTab::setupUI()
     }
     // 新增：将局部变量改为成员变量赋值
     m_copyFrameDialog = new CopyFrameDialog(this);
+    {
+        QString ch = (m_controllerName == "控制器1") ? "serial_E"
+                   : (m_controllerName == "控制器2") ? "serial_F" : "serial_G";
+        m_copyFrameDialog->setChannelId(ch);
+    }
     m_tabWidget->addTab(tabReceive, tr("接收状态"));
     m_tabWidget->addTab(m_launchFrameDialog, tr("发射帧"));
     m_tabWidget->addTab(m_copyFrameDialog, tr("测试帧"));

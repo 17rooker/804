@@ -1492,7 +1492,7 @@ void LaunchFrameDialog::onTimerTimeout_ser()
 {
     // 定时器超时，处理缓存的所有数据
     QMutexLocker locker(&m_cacheMutex);
-    if (m_param.getID()!="serial_E") return;
+    if (!m_param.getID().startsWith("serial_")) return;
 
     // 拷贝缓存数据并清空（释放锁，避免阻塞主线程）
     STParamInfo param = m_param;

@@ -43,7 +43,7 @@ void FrameCopyWorker::processData(const QByteArray &data)
 
         FrameDataAnalysis analy;
         STPackage pack;
-        pack.channelId = "serial_E";
+        pack.channelId = m_channelId;
         pack.channelType = EChannelType::Serial;
         pack.baDataRecv = frameData;
 

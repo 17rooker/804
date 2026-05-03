@@ -1469,7 +1469,7 @@ void LaunchProcessDialog::onTimerTimeout()
 void LaunchProcessDialog::onTimerTimeout_ser()
 {
     QMutexLocker locker(&m_cacheMutex);
-    if (m_param.getID()!="serial_E") return;
+    if (!m_param.getID().startsWith("serial_")) return;
 
     // 拷贝缓存数据并清空（释放锁，避免阻塞主线程）
     QByteArray dataToProcess = m_dataCache;

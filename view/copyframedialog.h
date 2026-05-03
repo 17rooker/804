@@ -14,6 +14,8 @@ class QThread;
 class FrameCopyWorker : public QObject
 {
     Q_OBJECT
+public:
+    QString m_channelId = "serial_E";
 public slots:
     void processData(const QByteArray &data);
 signals:
@@ -30,6 +32,7 @@ public:
 
 public slots:
     void setParam(const STParamInfo& param);
+    void setChannelId(const QString &ch) { if (m_worker) m_worker->m_channelId = ch; }
     void appendData(const QByteArray &data);
     void clearPlaybackCache();
 
