@@ -75,19 +75,19 @@ wavechart::~wavechart() {
 
 void wavechart::setupChart(ChartWidget *chart, const QString &title) {
     chart->setTitle(title);
-    chart->setAxisLabels("时间 (ms)", "电压 (V)");
-    chart->setXRange(0, 13);
+    chart->setAxisLabels("采样点", "电流 (A)");
+    chart->setXRange(0.5, 12.5);
     chart->setLegendHide(false);
 
     SeriesData sd;
-    sd.name = "电压";
+    sd.name = "电磁阀电流";
     sd.color = QColor("#00CCFF");
     sd.width = 2;
     QVector<double> x(12), y(12);
     for (int i = 0; i < 12; i++) { x[i] = i+1; y[i] = 0; }
     sd.x = x; sd.y = y;
     chart->addSeries(sd);
-    chart->setYRange(0, 5);
+    chart->setYRange(0, 12);
 }
 
 void wavechart::appendData(const QByteArray &data) {
@@ -135,8 +135,6 @@ void wavechart::plotAinData(const STParamInfo &param)
                 y[i-1] = 0;
             }
         }
-        if (hasData) {
-            m.chart->updateSeries(0, x, y);
-        }
+        m.chart->updateSeries(0, x, y);
     }
 }
