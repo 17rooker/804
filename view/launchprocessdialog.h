@@ -54,6 +54,7 @@ private:
     void onDataProcessed(const QMap<QString, bool> &ledStates, const QMap<QString, QString> &editValues);
     void updateControllerFrameUI(const QMap<QString, bool> &ledStates, const QMap<QString, QString> &editValues);
     void setParam(const STParamInfo& param);
+    void updateVoting();
 
     Ui::LaunchProcessDialog *ui;
     QTimer *m_timer;
@@ -91,6 +92,8 @@ private:
     FrameDatWorker *m_worker;
     QThread *m_workerThread;
     STParamInfo m_param;
+    STParamInfo m_paramE, m_paramF, m_paramG;  // 三通道数据
+    QLabel *m_lblModeVal = nullptr;            // 模式表决文本
 
     QMap<QString, StyledLedLabel*> m_ledMap;
     QMap<QString, StyledLineEdit*> m_valueMap;

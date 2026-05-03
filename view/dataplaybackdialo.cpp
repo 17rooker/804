@@ -3,6 +3,7 @@
 #include "controllerpanel.h"
 #include "launchprocessdialog.h"
 #include "copyframedialog.h"
+#include "wavechart.h"
 #include <QMutexLocker>
 #include <QDebug>
 #include <QScrollBar>
@@ -206,6 +207,7 @@ DataPlaybackDialog::DataPlaybackDialog(QWidget *parent)
     ,m_dataPanel(nullptr)
     ,m_LaunchProcess(nullptr)
     , m_copyFrameDialog(nullptr)
+    , m_waveChart(nullptr)
 {
     setWindowTitle("数据回放");
     setFixedSize(800, 600);
@@ -254,6 +256,10 @@ void DataPlaybackDialog::setLaunchProcessDialog(LaunchProcessDialog *dialog)
 void DataPlaybackDialog::setCopyFrameDialog(CopyFrameDialog *dialog)
 {
     m_copyFrameDialog = dialog;
+}
+void DataPlaybackDialog::setWaveChart(wavechart *w)
+{
+    m_waveChart = w;
 }
 
 void DataPlaybackDialog::initUI()
@@ -528,6 +534,8 @@ void DataPlaybackDialog::onStopClicked()
         QMetaObject::invokeMethod(m_LaunchProcess, "clearPlaybackCache", Qt::QueuedConnection);
     if (m_copyFrameDialog)
         QMetaObject::invokeMethod(m_copyFrameDialog, "clearPlaybackCache", Qt::QueuedConnection);
+    if (m_waveChart)
+        QMetaObject::invokeMethod(m_waveChart, "clearPlaybackCache", Qt::QueuedConnection);
 
     // 停止读取并销毁线程
     destroyWorkerThread();
@@ -546,6 +554,8 @@ void DataPlaybackDialog::onQuitClicked()
         QMetaObject::invokeMethod(m_LaunchProcess, "clearPlaybackCache", Qt::QueuedConnection);
     if (m_copyFrameDialog)
         QMetaObject::invokeMethod(m_copyFrameDialog, "clearPlaybackCache", Qt::QueuedConnection);
+    if (m_waveChart)
+        QMetaObject::invokeMethod(m_waveChart, "clearPlaybackCache", Qt::QueuedConnection);
 
     this->hide();
     destroyWorkerThread();
@@ -641,6 +651,10 @@ void DataPlaybackDialog::onRawDataReady(const QByteArray &data)
                                      Q_ARG(QByteArray, frameData));
 //            if (m_copyFrameDialog)
                 QMetaObject::invokeMethod(m_copyFrameDialog, "appendData",
+                                          Qt::QueuedConnection,
+                                          Q_ARG(QByteArray, frameData));
+            if (m_waveChart)
+                QMetaObject::invokeMethod(m_waveChart, "appendData",
                                           Qt::QueuedConnection,
                                           Q_ARG(QByteArray, frameData));
         }

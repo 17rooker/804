@@ -1534,9 +1534,16 @@ void LaunchProcessDialog::updateControllerFrameUI(const QMap<QString, bool> &led
 
 void LaunchProcessDialog::setParam(const STParamInfo &param)
 {
-    QMutexLocker locker(&m_cacheMutex);
-    m_param = param;
-    m_updateTimer_ser->start();
+    if (param.channelId == "serial_E") m_paramE = param;
+    else if (param.channelId == "serial_F") m_paramF = param;
+    else if (param.channelId == "serial_G") m_paramG = param;
+
+    if (param.channelId == "serial_E") {
+        QMutexLocker locker(&m_cacheMutex);
+        m_param = param;
+        m_updateTimer_ser->start();
+    }
+    updateVoting();
 }
 
 void LaunchProcessDialog::onMessage(IEvent *pEvent)
@@ -1733,13 +1740,13 @@ void LaunchProcessDialog::setupUI()
     QLabel *lblModeTitle = new QLabel("工作模式");
     lblModeTitle->setFont(QFont("SimHei", 13, QFont::Bold));
     lblModeTitle->setAlignment(Qt::AlignCenter);
-    QLabel *lblModeVal = new QLabel("NORMAL");
-    lblModeVal->setStyleSheet("background: black; color: #00FF00; padding: 5px; border: 1px solid gray;");
-    lblModeVal->setAlignment(Qt::AlignCenter);
-    lblModeVal->setFixedHeight(30);
-    lblModeVal->setFixedWidth(180);
+    m_lblModeVal = new QLabel("NORMAL");
+    m_lblModeVal->setStyleSheet("background: black; color: #00FF00; padding: 5px; border: 1px solid gray;");
+    m_lblModeVal->setAlignment(Qt::AlignCenter);
+    m_lblModeVal->setFixedHeight(30);
+    m_lblModeVal->setFixedWidth(180);
     layMode->addWidget(lblModeTitle);
-    layMode->addWidget(lblModeVal);
+    layMode->addWidget(m_lblModeVal);
 
     QStringList headers = {"数字供电", "驱动供电1", "驱动供电2", "数字5V1", "数字5V2", "数字5V3", "温度"};
     QHBoxLayout *layDataStrip = new QHBoxLayout();
@@ -1951,6 +1958,97 @@ void LaunchProcessDialog::setupUI()
     mainLayout->addWidget(midFrame, 2);
     mainLayout->addLayout(bottomLayout, 5);
 }
+
+// ═══════════════════════════════════════════════════════════════════════════
+//  三通道表决
+// ═══════════════════════════════════════════════════════════════════════════
+static void setVoteLed(StyledLedLabel *led, int cnt, int total) {
+    if (!led) return;
+    if (cnt == total)
+        led->setStyleSheet("background-color: #00CC00; border-radius: 8px; border: 1px solid white;");
+    else if (cnt == 0)
+        led->setStyleSheet("background-color: #274811; border-radius: 8px; border: 1px solid #444;");
+    else
+        led->setStyleSheet("background-color: #FFCC00; border-radius: 8px; border: 1px solid white;");
+}
+
+static quint8 gf(const STParamInfo &p, const QString &k) {
+    auto it = p.mapParams.find(k);
+    if (it != p.mapParams.end()) return it.value().varParaValue.toUInt();
+    return 0;
+}
+
+void LaunchProcessDialog::updateVoting()
+{
+    // ── 模式 ──
+    auto getMode = [&](const STParamInfo &p) -> QString {
+        switch (gf(p, "WorkMode")) {
+        case 0xAA: return "测试模式"; case 0xBB: return "手动模式";
+        case 0xCC: return "自动模式"; default: return {};
+        }
+    };
+    QString mE = getMode(m_paramE), mF = getMode(m_paramF), mG = getMode(m_paramG);
+    if (m_lblModeVal) {
+        if (!mE.isEmpty() && mE == mF && mF == mG) m_lblModeVal->setText(mE + "（一致）");
+        else if (mE.isEmpty() && mF.isEmpty() && mG.isEmpty()) m_lblModeVal->setText("---");
+        else m_lblModeVal->setText("模式错误");
+    }
+
+    // ── 状态灯表决辅助 ──
+    auto vote = [&](StyledLedLabel *led, const QStringList &keys, int bit) {
+        int c = 0;
+        for (auto *p : {&m_paramE, &m_paramF, &m_paramG}) {
+            bool any = false;
+            for (const auto &k : keys)
+                if (((int)gf(*p, k) >> bit) & 1) { any = true; break; }
+            if (any) c++;
+        }
+        setVoteLed(led, c, 3);
+    };
+
+    // 1. 电缆连接: SolenoidValveStatus1-4/OE_KJ1-5 B6
+    vote(m_lightCable, {"SolenoidValveStatus1","SolenoidValveStatus2","SolenoidValveStatus3","SolenoidValveStatus4","OE_KJ1","OE_KJ2","OE_KJ4","OE_KJ5"}, 6);
+
+    // 2. 供气状态: B4
+    vote(m_lightGasState, {"SolenoidValveStatus1","SolenoidValveStatus2","SolenoidValveStatus3","SolenoidValveStatus4","OE_KJ1","OE_KJ2","OE_KJ4","OE_KJ5"}, 4);
+
+    // 3. 解锁状态: B0+B1 (主+备)
+    {
+        int c = 0;
+        for (auto *p : {&m_paramE, &m_paramF, &m_paramG}) {
+            bool any = false;
+            for (int m = 1; m <= 4; m++) {
+                int oej = (m==3)?4:(m==4)?5:(m==1)?1:2;
+                quint8 sv = gf(*p, QString("SolenoidValveStatus%1").arg(m));
+                quint8 oj = gf(*p, QString("OE_KJ%1").arg(oej));
+                if ((sv & 0x07) || (oj & 0x07)) any = true;
+            }
+            if (any) c++;
+        }
+        setVoteLed(m_lightLockPos, c, 3);
+    }
+
+    // 4. 火引爆: InitiatorDetonateRelayStatus/OE_KJ10 B0-3
+    vote(m_lightFireSafe, {"InitiatorDetonateRelayStatus","OE_KJ10"}, 0);
+
+    // 5. 牵制释放准备好: ReleasePermitAndPowerStatus B7
+    vote(m_lightReady, {"ReleasePermitAndPowerStatus"}, 7);
+
+    // 6. 转发释放好: Mechanism1_2ReleaseStatus/Mechanism3_4ReleaseStatus B6-7
+    {
+        int c = 0;
+        for (auto *p : {&m_paramE, &m_paramF, &m_paramG}) {
+            quint8 m12 = gf(*p, "Mechanism1_2ReleaseStatus");
+            quint8 m34 = gf(*p, "Mechanism3_4ReleaseStatus");
+            if ((m12 & 0xC0) || (m34 & 0xC0)) c++;
+        }
+        setVoteLed(m_lightResetPos, c, 3);
+    }
+
+    // 7. 5VK状态
+    vote(m_light5VK, {"Digital5V1","Digital5V2","Digital5V3","AIN10","AIN12","AIN13"}, 0);
+}
+
 void LaunchProcessDialog::updateTime()
 {
     m_lblTime->setText(QTime::currentTime().toString("hh:mm:ss"));

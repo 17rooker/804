@@ -23,6 +23,7 @@ class LaunchFrameDialog;
 class ControllerPanel ;
 class LaunchProcessDialog;
 class CopyFrameDialog;
+class wavechart;
 class DataReadWorker : public QObject
 {
     Q_OBJECT
@@ -75,6 +76,7 @@ public:
     void setControllerPanelDialog(ControllerPanel *dialog);
     void setLaunchProcessDialog(LaunchProcessDialog *dialog);
     void setCopyFrameDialog(CopyFrameDialog *dialog);
+    void setWaveChart(wavechart *w);
 
     void setLaunchFrameDialog(LaunchFrameDialog *dialog);
 private slots:
@@ -106,6 +108,7 @@ private:
     ControllerPanel *m_dataPanel=nullptr;
     LaunchProcessDialog*m_LaunchProcess=nullptr;
     CopyFrameDialog *m_copyFrameDialog = nullptr;
+    wavechart *m_waveChart = nullptr;
     bool m_hasSentCollectorData = false;
     // UI控件
     QLineEdit *m_fileEdit;

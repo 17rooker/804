@@ -209,6 +209,7 @@ void EmissionTab::setupUI()
         playbackDlg->setLaunchProcessDialog(m_LaunchProcessDialog);
         playbackDlg->setControllerPanelDialog(m_dataPanel);
         playbackDlg->setCopyFrameDialog(m_copyFrameDialog);
+        playbackDlg->setWaveChart(m_waveChart);
 
         playbackDlg->show();
         playbackDlg->raise();
