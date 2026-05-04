@@ -21,18 +21,22 @@ static STFrameField parseField(const json& j)
     f.dataType    = static_cast<EAnaysisDataType>(j.value("data_type", 0));
     f.byteCount   = j.value("byte_count", 0);
 
-    // null 字段用 QVariant() 表示无效值
-    if (!j["upper_limit"].is_null())
-        f.upperLimit = QVariant(j["upper_limit"].get<double>());
+    // null 字段用 QVariant() 表示无效值（使用 value() 避免 const json 抛异常）
+    auto ul = j.find("upper_limit");
+    if (ul != j.end() && !ul->is_null())
+        f.upperLimit = QVariant(ul->get<double>());
 
-    if (!j["lower_limit"].is_null())
-        f.lowerLimit = QVariant(j["lower_limit"].get<double>());
+    auto ll = j.find("lower_limit");
+    if (ll != j.end() && !ll->is_null())
+        f.lowerLimit = QVariant(ll->get<double>());
 
-    if (!j["Precision"].is_null())
-        f.precision  = QVariant(j["Precision"].get<double>());
+    auto pr = j.find("Precision");
+    if (pr != j.end() && !pr->is_null())
+        f.precision = QVariant(pr->get<double>());
 
-    if (!j["unit"].is_null())
-        f.unit = QString::fromStdString(j["unit"].get<std::string>());
+    auto un = j.find("unit");
+    if (un != j.end() && !un->is_null())
+        f.unit = QString::fromStdString(un->get<std::string>());
 
     for (const auto& cmd : j.value("Command", json::array()))
         f.command.append(QString::fromStdString(cmd.get<std::string>()));

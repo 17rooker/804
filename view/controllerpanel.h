@@ -5,14 +5,13 @@
 #include <QLineEdit>
 #include <QLabel>
 #include <QVector>
-#include <QFile>
+// 引入自定义样式控件头文件
 #include "styledlineedit.h"
 #include "styledledlabel.h"
 #include "src/Common/StructDefine.h"
 #include "src/DataProcess/DataAnalysis/FrameDataAnalysis.h"
 #include "src/CustomMessage/IMessage.h"
 #include "src/Common/StructDefine.h"
-class CsvController;
 // 定义一个结构体来保存每一行的控件指针
 enum class RowType {
     Value,  // 包含数值框
@@ -78,7 +77,6 @@ private:
     void onDataProcessed(const QMap<QString, bool> &ledStates, const QMap<QString, QString> &editValues);
     void updateControllerFrameUI(const QMap<QString, bool> &ledStates, const QMap<QString, QString> &editValues);
     void setParam(const STParamInfo& param);
-    void logToCsv(const QMap<QString, QString> &editValues, const QMap<QString, bool> &ledStates);
 
     // 创建单行控件 (黑框 + 标签)
     DataWidgetRow createRow(const QString &text);
@@ -112,7 +110,6 @@ private:
 
     QMap<QString, StyledLedLabel*> m_ledMap;      // LED名称 -> LED控件映射
     QMap<QString, StyledLineEdit*> m_valueMap;
-    CsvController *m_csvLogger = nullptr;
 };
 
 #endif // CONTROLLERPANEL_H

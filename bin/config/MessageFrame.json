@@ -12227,7 +12227,14 @@
           "description": "帧同步",
           "csv_field": "帧同步",
           "data_type": 6,
-          "byte_count": 2
+          "byte_count": 2,
+          "upper_limit": null,
+          "lower_limit": null,
+          "Precision": null,
+          "unit": null,
+          "Command": [],
+          "ReturnCommand": [],
+          "bit_fields": []
         },
         {
           "index": 2,
@@ -12236,7 +12243,14 @@
           "description": "帧长",
           "csv_field": "帧长",
           "data_type": 7,
-          "byte_count": 2
+          "byte_count": 2,
+          "upper_limit": null,
+          "lower_limit": null,
+          "Precision": null,
+          "unit": null,
+          "Command": [],
+          "ReturnCommand": [],
+          "bit_fields": []
         },
         {
           "index": 3,
@@ -12245,7 +12259,14 @@
           "description": "帧类型",
           "csv_field": "帧类型",
           "data_type": 6,
-          "byte_count": 1
+          "byte_count": 1,
+          "upper_limit": null,
+          "lower_limit": null,
+          "Precision": null,
+          "unit": null,
+          "Command": [],
+          "ReturnCommand": [],
+          "bit_fields": []
         },
         {
           "index": 4,
@@ -12254,7 +12275,14 @@
           "description": "帧标识",
           "csv_field": "帧标识",
           "data_type": 6,
-          "byte_count": 2
+          "byte_count": 2,
+          "upper_limit": null,
+          "lower_limit": null,
+          "Precision": null,
+          "unit": null,
+          "Command": [],
+          "ReturnCommand": [],
+          "bit_fields": []
         },
         {
           "index": 5,
@@ -12263,7 +12291,14 @@
           "description": "信源系统编码",
           "csv_field": "信源系统",
           "data_type": 6,
-          "byte_count": 1
+          "byte_count": 1,
+          "upper_limit": null,
+          "lower_limit": null,
+          "Precision": null,
+          "unit": null,
+          "Command": [],
+          "ReturnCommand": [],
+          "bit_fields": []
         },
         {
           "index": 6,
@@ -12272,7 +12307,14 @@
           "description": "信源节点编码",
           "csv_field": "信源节点",
           "data_type": 6,
-          "byte_count": 1
+          "byte_count": 1,
+          "upper_limit": null,
+          "lower_limit": null,
+          "Precision": null,
+          "unit": null,
+          "Command": [],
+          "ReturnCommand": [],
+          "bit_fields": []
         },
         {
           "index": 7,
@@ -12281,7 +12323,14 @@
           "description": "信宿系统编码",
           "csv_field": "信宿系统",
           "data_type": 6,
-          "byte_count": 1
+          "byte_count": 1,
+          "upper_limit": null,
+          "lower_limit": null,
+          "Precision": null,
+          "unit": null,
+          "Command": [],
+          "ReturnCommand": [],
+          "bit_fields": []
         },
         {
           "index": 8,
@@ -12290,7 +12339,14 @@
           "description": "信宿节点编码",
           "csv_field": "信宿节点",
           "data_type": 6,
-          "byte_count": 1
+          "byte_count": 1,
+          "upper_limit": null,
+          "lower_limit": null,
+          "Precision": null,
+          "unit": null,
+          "Command": [],
+          "ReturnCommand": [],
+          "bit_fields": []
         },
         {
           "index": 9,
@@ -12299,7 +12355,14 @@
           "description": "日期年",
           "csv_field": "年",
           "data_type": 7,
-          "byte_count": 2
+          "byte_count": 2,
+          "upper_limit": null,
+          "lower_limit": null,
+          "Precision": null,
+          "unit": null,
+          "Command": [],
+          "ReturnCommand": [],
+          "bit_fields": []
         },
         {
           "index": 10,
@@ -12308,7 +12371,14 @@
           "description": "日期月",
           "csv_field": "月",
           "data_type": 6,
-          "byte_count": 1
+          "byte_count": 1,
+          "upper_limit": null,
+          "lower_limit": null,
+          "Precision": null,
+          "unit": null,
+          "Command": [],
+          "ReturnCommand": [],
+          "bit_fields": []
         },
         {
           "index": 11,
@@ -12317,7 +12387,14 @@
           "description": "日期日",
           "csv_field": "日",
           "data_type": 6,
-          "byte_count": 1
+          "byte_count": 1,
+          "upper_limit": null,
+          "lower_limit": null,
+          "Precision": null,
+          "unit": null,
+          "Command": [],
+          "ReturnCommand": [],
+          "bit_fields": []
         },
         {
           "index": 12,
@@ -12326,7 +12403,14 @@
           "description": "时间",
           "csv_field": "时间",
           "data_type": 8,
-          "byte_count": 4
+          "byte_count": 4,
+          "upper_limit": null,
+          "lower_limit": null,
+          "Precision": null,
+          "unit": null,
+          "Command": [],
+          "ReturnCommand": [],
+          "bit_fields": []
         },
         {
           "index": 13,
@@ -12335,7 +12419,14 @@
           "description": "帧计数",
           "csv_field": "帧计数",
           "data_type": 8,
-          "byte_count": 4
+          "byte_count": 4,
+          "upper_limit": null,
+          "lower_limit": null,
+          "Precision": null,
+          "unit": null,
+          "Command": [],
+          "ReturnCommand": [],
+          "bit_fields": []
         },
         {
           "index": 14,
@@ -12344,7 +12435,14 @@
           "description": "信息字个数",
           "csv_field": "信息字数",
           "data_type": 7,
-          "byte_count": 2
+          "byte_count": 2,
+          "upper_limit": null,
+          "lower_limit": null,
+          "Precision": null,
+          "unit": null,
+          "Command": [],
+          "ReturnCommand": [],
+          "bit_fields": []
         },
         {
           "index": 15,
@@ -12353,7 +12451,14 @@
           "description": "信息字类别",
           "csv_field": "信息字类别",
           "data_type": 7,
-          "byte_count": 2
+          "byte_count": 2,
+          "upper_limit": null,
+          "lower_limit": null,
+          "Precision": null,
+          "unit": null,
+          "Command": [],
+          "ReturnCommand": [],
+          "bit_fields": []
         },
         {
           "index": 16,
@@ -12362,7 +12467,14 @@
           "description": "校验和",
           "csv_field": "校验和",
           "data_type": 7,
-          "byte_count": 2
+          "byte_count": 2,
+          "upper_limit": null,
+          "lower_limit": null,
+          "Precision": null,
+          "unit": null,
+          "Command": [],
+          "ReturnCommand": [],
+          "bit_fields": []
         },
         {
           "index": 17,
@@ -12371,7 +12483,14 @@
           "description": "备用字节",
           "csv_field": "备用",
           "data_type": 6,
-          "byte_count": 3
+          "byte_count": 3,
+          "upper_limit": null,
+          "lower_limit": null,
+          "Precision": null,
+          "unit": null,
+          "Command": [],
+          "ReturnCommand": [],
+          "bit_fields": []
         }
       ],
       "frame_body": [
@@ -12382,7 +12501,14 @@
           "description": "信息字1编码",
           "csv_field": "编码1",
           "data_type": 7,
-          "byte_count": 2
+          "byte_count": 2,
+          "upper_limit": null,
+          "lower_limit": null,
+          "Precision": null,
+          "unit": null,
+          "Command": [],
+          "ReturnCommand": [],
+          "bit_fields": []
         },
         {
           "index": 19,
@@ -12391,7 +12517,14 @@
           "description": "信息字1标准值",
           "csv_field": "标准值1",
           "data_type": 11,
-          "byte_count": 8
+          "byte_count": 8,
+          "upper_limit": null,
+          "lower_limit": null,
+          "Precision": null,
+          "unit": null,
+          "Command": [],
+          "ReturnCommand": [],
+          "bit_fields": []
         },
         {
           "index": 20,
@@ -12400,7 +12533,14 @@
           "description": "信息字1偏差值",
           "csv_field": "偏差值1",
           "data_type": 11,
-          "byte_count": 8
+          "byte_count": 8,
+          "upper_limit": null,
+          "lower_limit": null,
+          "Precision": null,
+          "unit": null,
+          "Command": [],
+          "ReturnCommand": [],
+          "bit_fields": []
         },
         {
           "index": 21,
@@ -12409,7 +12549,14 @@
           "description": "信息字1合格标记",
           "csv_field": "合格1",
           "data_type": 6,
-          "byte_count": 1
+          "byte_count": 1,
+          "upper_limit": null,
+          "lower_limit": null,
+          "Precision": null,
+          "unit": null,
+          "Command": [],
+          "ReturnCommand": [],
+          "bit_fields": []
         },
         {
           "index": 22,
@@ -12418,7 +12565,14 @@
           "description": "信息字2编码",
           "csv_field": "编码2",
           "data_type": 7,
-          "byte_count": 2
+          "byte_count": 2,
+          "upper_limit": null,
+          "lower_limit": null,
+          "Precision": null,
+          "unit": null,
+          "Command": [],
+          "ReturnCommand": [],
+          "bit_fields": []
         },
         {
           "index": 23,
@@ -12427,7 +12581,14 @@
           "description": "信息字2标准值",
           "csv_field": "标准值2",
           "data_type": 11,
-          "byte_count": 8
+          "byte_count": 8,
+          "upper_limit": null,
+          "lower_limit": null,
+          "Precision": null,
+          "unit": null,
+          "Command": [],
+          "ReturnCommand": [],
+          "bit_fields": []
         },
         {
           "index": 24,
@@ -12436,7 +12597,14 @@
           "description": "信息字2偏差值",
           "csv_field": "偏差值2",
           "data_type": 11,
-          "byte_count": 8
+          "byte_count": 8,
+          "upper_limit": null,
+          "lower_limit": null,
+          "Precision": null,
+          "unit": null,
+          "Command": [],
+          "ReturnCommand": [],
+          "bit_fields": []
         },
         {
           "index": 25,
@@ -12445,7 +12613,14 @@
           "description": "信息字2合格标记",
           "csv_field": "合格2",
           "data_type": 6,
-          "byte_count": 1
+          "byte_count": 1,
+          "upper_limit": null,
+          "lower_limit": null,
+          "Precision": null,
+          "unit": null,
+          "Command": [],
+          "ReturnCommand": [],
+          "bit_fields": []
         },
         {
           "index": 26,
@@ -12454,7 +12629,14 @@
           "description": "信息字3编码",
           "csv_field": "编码3",
           "data_type": 7,
-          "byte_count": 2
+          "byte_count": 2,
+          "upper_limit": null,
+          "lower_limit": null,
+          "Precision": null,
+          "unit": null,
+          "Command": [],
+          "ReturnCommand": [],
+          "bit_fields": []
         },
         {
           "index": 27,
@@ -12463,7 +12645,14 @@
           "description": "信息字3标准值",
           "csv_field": "标准值3",
           "data_type": 11,
-          "byte_count": 8
+          "byte_count": 8,
+          "upper_limit": null,
+          "lower_limit": null,
+          "Precision": null,
+          "unit": null,
+          "Command": [],
+          "ReturnCommand": [],
+          "bit_fields": []
         },
         {
           "index": 28,
@@ -12472,7 +12661,14 @@
           "description": "信息字3偏差值",
           "csv_field": "偏差值3",
           "data_type": 11,
-          "byte_count": 8
+          "byte_count": 8,
+          "upper_limit": null,
+          "lower_limit": null,
+          "Precision": null,
+          "unit": null,
+          "Command": [],
+          "ReturnCommand": [],
+          "bit_fields": []
         },
         {
           "index": 29,
@@ -12481,7 +12677,14 @@
           "description": "信息字3合格标记",
           "csv_field": "合格3",
           "data_type": 6,
-          "byte_count": 1
+          "byte_count": 1,
+          "upper_limit": null,
+          "lower_limit": null,
+          "Precision": null,
+          "unit": null,
+          "Command": [],
+          "ReturnCommand": [],
+          "bit_fields": []
         },
         {
           "index": 30,
@@ -12490,7 +12693,14 @@
           "description": "信息字4编码",
           "csv_field": "编码4",
           "data_type": 7,
-          "byte_count": 2
+          "byte_count": 2,
+          "upper_limit": null,
+          "lower_limit": null,
+          "Precision": null,
+          "unit": null,
+          "Command": [],
+          "ReturnCommand": [],
+          "bit_fields": []
         },
         {
           "index": 31,
@@ -12499,7 +12709,14 @@
           "description": "信息字4标准值",
           "csv_field": "标准值4",
           "data_type": 11,
-          "byte_count": 8
+          "byte_count": 8,
+          "upper_limit": null,
+          "lower_limit": null,
+          "Precision": null,
+          "unit": null,
+          "Command": [],
+          "ReturnCommand": [],
+          "bit_fields": []
         },
         {
           "index": 32,
@@ -12508,7 +12725,14 @@
           "description": "信息字4偏差值",
           "csv_field": "偏差值4",
           "data_type": 11,
-          "byte_count": 8
+          "byte_count": 8,
+          "upper_limit": null,
+          "lower_limit": null,
+          "Precision": null,
+          "unit": null,
+          "Command": [],
+          "ReturnCommand": [],
+          "bit_fields": []
         },
         {
           "index": 33,
@@ -12517,7 +12741,14 @@
           "description": "信息字4合格标记",
           "csv_field": "合格4",
           "data_type": 6,
-          "byte_count": 1
+          "byte_count": 1,
+          "upper_limit": null,
+          "lower_limit": null,
+          "Precision": null,
+          "unit": null,
+          "Command": [],
+          "ReturnCommand": [],
+          "bit_fields": []
         },
         {
           "index": 34,
@@ -12526,7 +12757,14 @@
           "description": "信息字5编码",
           "csv_field": "编码5",
           "data_type": 7,
-          "byte_count": 2
+          "byte_count": 2,
+          "upper_limit": null,
+          "lower_limit": null,
+          "Precision": null,
+          "unit": null,
+          "Command": [],
+          "ReturnCommand": [],
+          "bit_fields": []
         },
         {
           "index": 35,
@@ -12535,7 +12773,14 @@
           "description": "信息字5标准值",
           "csv_field": "标准值5",
           "data_type": 11,
-          "byte_count": 8
+          "byte_count": 8,
+          "upper_limit": null,
+          "lower_limit": null,
+          "Precision": null,
+          "unit": null,
+          "Command": [],
+          "ReturnCommand": [],
+          "bit_fields": []
         },
         {
           "index": 36,
@@ -12544,7 +12789,14 @@
           "description": "信息字5偏差值",
           "csv_field": "偏差值5",
           "data_type": 11,
-          "byte_count": 8
+          "byte_count": 8,
+          "upper_limit": null,
+          "lower_limit": null,
+          "Precision": null,
+          "unit": null,
+          "Command": [],
+          "ReturnCommand": [],
+          "bit_fields": []
         },
         {
           "index": 37,
@@ -12553,7 +12805,14 @@
           "description": "信息字5合格标记",
           "csv_field": "合格5",
           "data_type": 6,
-          "byte_count": 1
+          "byte_count": 1,
+          "upper_limit": null,
+          "lower_limit": null,
+          "Precision": null,
+          "unit": null,
+          "Command": [],
+          "ReturnCommand": [],
+          "bit_fields": []
         },
         {
           "index": 38,
@@ -12562,7 +12821,14 @@
           "description": "信息字6编码",
           "csv_field": "编码6",
           "data_type": 7,
-          "byte_count": 2
+          "byte_count": 2,
+          "upper_limit": null,
+          "lower_limit": null,
+          "Precision": null,
+          "unit": null,
+          "Command": [],
+          "ReturnCommand": [],
+          "bit_fields": []
         },
         {
           "index": 39,
@@ -12571,7 +12837,14 @@
           "description": "信息字6标准值",
           "csv_field": "标准值6",
           "data_type": 11,
-          "byte_count": 8
+          "byte_count": 8,
+          "upper_limit": null,
+          "lower_limit": null,
+          "Precision": null,
+          "unit": null,
+          "Command": [],
+          "ReturnCommand": [],
+          "bit_fields": []
         },
         {
           "index": 40,
@@ -12580,7 +12853,14 @@
           "description": "信息字6偏差值",
           "csv_field": "偏差值6",
           "data_type": 11,
-          "byte_count": 8
+          "byte_count": 8,
+          "upper_limit": null,
+          "lower_limit": null,
+          "Precision": null,
+          "unit": null,
+          "Command": [],
+          "ReturnCommand": [],
+          "bit_fields": []
         },
         {
           "index": 41,
@@ -12589,7 +12869,14 @@
           "description": "信息字6合格标记",
           "csv_field": "合格6",
           "data_type": 6,
-          "byte_count": 1
+          "byte_count": 1,
+          "upper_limit": null,
+          "lower_limit": null,
+          "Precision": null,
+          "unit": null,
+          "Command": [],
+          "ReturnCommand": [],
+          "bit_fields": []
         },
         {
           "index": 42,
@@ -12598,7 +12885,14 @@
           "description": "信息字7编码",
           "csv_field": "编码7",
           "data_type": 7,
-          "byte_count": 2
+          "byte_count": 2,
+          "upper_limit": null,
+          "lower_limit": null,
+          "Precision": null,
+          "unit": null,
+          "Command": [],
+          "ReturnCommand": [],
+          "bit_fields": []
         },
         {
           "index": 43,
@@ -12607,7 +12901,14 @@
           "description": "信息字7标准值",
           "csv_field": "标准值7",
           "data_type": 11,
-          "byte_count": 8
+          "byte_count": 8,
+          "upper_limit": null,
+          "lower_limit": null,
+          "Precision": null,
+          "unit": null,
+          "Command": [],
+          "ReturnCommand": [],
+          "bit_fields": []
         },
         {
           "index": 44,
@@ -12616,7 +12917,14 @@
           "description": "信息字7偏差值",
           "csv_field": "偏差值7",
           "data_type": 11,
-          "byte_count": 8
+          "byte_count": 8,
+          "upper_limit": null,
+          "lower_limit": null,
+          "Precision": null,
+          "unit": null,
+          "Command": [],
+          "ReturnCommand": [],
+          "bit_fields": []
         },
         {
           "index": 45,
@@ -12625,7 +12933,14 @@
           "description": "信息字7合格标记",
           "csv_field": "合格7",
           "data_type": 6,
-          "byte_count": 1
+          "byte_count": 1,
+          "upper_limit": null,
+          "lower_limit": null,
+          "Precision": null,
+          "unit": null,
+          "Command": [],
+          "ReturnCommand": [],
+          "bit_fields": []
         },
         {
           "index": 46,
@@ -12634,7 +12949,14 @@
           "description": "信息字8编码",
           "csv_field": "编码8",
           "data_type": 7,
-          "byte_count": 2
+          "byte_count": 2,
+          "upper_limit": null,
+          "lower_limit": null,
+          "Precision": null,
+          "unit": null,
+          "Command": [],
+          "ReturnCommand": [],
+          "bit_fields": []
         },
         {
           "index": 47,
@@ -12643,7 +12965,14 @@
           "description": "信息字8标准值",
           "csv_field": "标准值8",
           "data_type": 11,
-          "byte_count": 8
+          "byte_count": 8,
+          "upper_limit": null,
+          "lower_limit": null,
+          "Precision": null,
+          "unit": null,
+          "Command": [],
+          "ReturnCommand": [],
+          "bit_fields": []
         },
         {
           "index": 48,
@@ -12652,7 +12981,14 @@
           "description": "信息字8偏差值",
           "csv_field": "偏差值8",
           "data_type": 11,
-          "byte_count": 8
+          "byte_count": 8,
+          "upper_limit": null,
+          "lower_limit": null,
+          "Precision": null,
+          "unit": null,
+          "Command": [],
+          "ReturnCommand": [],
+          "bit_fields": []
         },
         {
           "index": 49,
@@ -12661,7 +12997,14 @@
           "description": "信息字8合格标记",
           "csv_field": "合格8",
           "data_type": 6,
-          "byte_count": 1
+          "byte_count": 1,
+          "upper_limit": null,
+          "lower_limit": null,
+          "Precision": null,
+          "unit": null,
+          "Command": [],
+          "ReturnCommand": [],
+          "bit_fields": []
         },
         {
           "index": 50,
@@ -12670,7 +13013,14 @@
           "description": "信息字9编码",
           "csv_field": "编码9",
           "data_type": 7,
-          "byte_count": 2
+          "byte_count": 2,
+          "upper_limit": null,
+          "lower_limit": null,
+          "Precision": null,
+          "unit": null,
+          "Command": [],
+          "ReturnCommand": [],
+          "bit_fields": []
         },
         {
           "index": 51,
@@ -12679,7 +13029,14 @@
           "description": "信息字9标准值",
           "csv_field": "标准值9",
           "data_type": 11,
-          "byte_count": 8
+          "byte_count": 8,
+          "upper_limit": null,
+          "lower_limit": null,
+          "Precision": null,
+          "unit": null,
+          "Command": [],
+          "ReturnCommand": [],
+          "bit_fields": []
         },
         {
           "index": 52,
@@ -12688,7 +13045,14 @@
           "description": "信息字9偏差值",
           "csv_field": "偏差值9",
           "data_type": 11,
-          "byte_count": 8
+          "byte_count": 8,
+          "upper_limit": null,
+          "lower_limit": null,
+          "Precision": null,
+          "unit": null,
+          "Command": [],
+          "ReturnCommand": [],
+          "bit_fields": []
         },
         {
           "index": 53,
@@ -12697,7 +13061,14 @@
           "description": "信息字9合格标记",
           "csv_field": "合格9",
           "data_type": 6,
-          "byte_count": 1
+          "byte_count": 1,
+          "upper_limit": null,
+          "lower_limit": null,
+          "Precision": null,
+          "unit": null,
+          "Command": [],
+          "ReturnCommand": [],
+          "bit_fields": []
         },
         {
           "index": 54,
@@ -12706,7 +13077,14 @@
           "description": "信息字10编码",
           "csv_field": "编码10",
           "data_type": 7,
-          "byte_count": 2
+          "byte_count": 2,
+          "upper_limit": null,
+          "lower_limit": null,
+          "Precision": null,
+          "unit": null,
+          "Command": [],
+          "ReturnCommand": [],
+          "bit_fields": []
         },
         {
           "index": 55,
@@ -12715,7 +13093,14 @@
           "description": "信息字10标准值",
           "csv_field": "标准值10",
           "data_type": 11,
-          "byte_count": 8
+          "byte_count": 8,
+          "upper_limit": null,
+          "lower_limit": null,
+          "Precision": null,
+          "unit": null,
+          "Command": [],
+          "ReturnCommand": [],
+          "bit_fields": []
         },
         {
           "index": 56,
@@ -12724,7 +13109,14 @@
           "description": "信息字10偏差值",
           "csv_field": "偏差值10",
           "data_type": 11,
-          "byte_count": 8
+          "byte_count": 8,
+          "upper_limit": null,
+          "lower_limit": null,
+          "Precision": null,
+          "unit": null,
+          "Command": [],
+          "ReturnCommand": [],
+          "bit_fields": []
         },
         {
           "index": 57,
@@ -12733,7 +13125,14 @@
           "description": "信息字10合格标记",
           "csv_field": "合格10",
           "data_type": 6,
-          "byte_count": 1
+          "byte_count": 1,
+          "upper_limit": null,
+          "lower_limit": null,
+          "Precision": null,
+          "unit": null,
+          "Command": [],
+          "ReturnCommand": [],
+          "bit_fields": []
         }
       ],
       "frame_tail": []
