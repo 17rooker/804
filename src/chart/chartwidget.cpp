@@ -389,7 +389,6 @@ void ChartWidget::updateSeries(int index,
         return;
     }
     m_graphs[index]->setData(x, y);
-    m_plot->rescaleAxes(true);
     m_plot->replot();
 }
 

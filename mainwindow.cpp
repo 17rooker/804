@@ -156,7 +156,7 @@ void MainWindow::initUi()
     lblReady->setStyleSheet("color: white; font-size: 14px; font-family: 'SimHei';");
     m_lblStatusLight = new QLabel(topBar);
     m_lblStatusLight->setFixedSize(12, 12);
-    m_lblStatusLight->setStyleSheet("border-radius: 6px; background-color: #00FF00; border: 1px solid white;");
+    m_lblStatusLight->setStyleSheet("border-radius: 6px; background-color: #888888; border: 1px solid white;");
     readyLayout->addWidget(lblReady);
     readyLayout->addWidget(m_lblStatusLight);
 
@@ -332,6 +332,15 @@ void MainWindow::initUi()
                 if (m_logText) m_logText->append(QString("[%1] 与测发控断开连接").arg(timeStr));
             }
             prevState = state;
+        });
+
+    // 机构准备好状态（来自控制器面板传感器判断）
+    connect(m_dataPanel, &ControllerPanel::mechanismReadyChanged,
+        this, [this](bool ready) {
+            m_lblStatusLight->setStyleSheet(
+                ready
+                ? "border-radius: 6px; background-color: #00FF00; border: 1px solid white;"
+                : "border-radius: 6px; background-color: #888888; border: 1px solid white;");
         });
 
     // 运控记录支持右键清除

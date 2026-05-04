@@ -77,6 +77,7 @@ Each worker's `processData()`:
 - **`RemoteSettingWidget`**: TCP/UDP parameters can be hot-applied. Saves to Info.ini via `ConfigHelper::setValue()`, then calls `CommManager::updateXxxChannel()`.
 
 - **MainWindow**: CEC status LED reflects TCP remote connection (green/gray). 远控记录 QTextEdit logs connection/disconnection events with timestamps (transition-only, using `static prevState`). Right-click "清除记录" context menu.
+- **Mechanism Ready**: `ControllerPanel::onDataProcessed()` checks sensor criteria: 拉力(3~60kN, any of 2) + 压力(0.6~1.3MPa, any of 2). Emits `mechanismReadyChanged(bool)` → MainWindow's `m_lblStatusLight` LED (green=ready, gray=not). Same `ChartWidget::updateSeries` also removed `rescaleAxes()` to preserve user zoom.
 
 ### UI Widget Mapping Pattern
 
@@ -86,18 +87,30 @@ All data display widgets (ControllerPanel, LaunchFrameDialog, LaunchProcessDialo
 - `updateControllerFrameUI()` iterates received maps and updates matching widgets
 - Unknown keys are silently ignored
 
-**CopyFrameDialog (测试帧)**: Embedded as a tab in EmissionTab. Uses `setParam()` which calls `updateData()` immediately. Maps A5/A6 field IDs directly to LEDs and value fields.
+**CopyFrameDialog (测试帧)**: Embedded as a tab in EmissionTab. Uses `setParam()` which calls `updateData()` immediately. Maps A5/A6 field IDs directly to LEDs and value fields. Has its own `FrameCopyWorker` for A6 playback.
+
+**LaunchProcessDialog**: Supports three-channel voting. `setParam()` stores data per channelId (`m_paramE/F/G`), `updateVoting()` polls all 3 channels and updates existing LEDs (green=all 1, dim=all 0, yellow=mixed). Mode displays consensus or "模式错误".
+
+**wavechart**: 4 ChartWidget instances (机构1~4). `setParam` stores param, 50ms repeating timer triggers `plotAinData()` which extracts `AIN4_t1~AIN7_t12` (UInt8→double `*0.01952/0.51`). ChartWidget `updateSeries` no longer calls `rescaleAxes(true)` to preserve user zoom.
 
 ### Data Replay
 
 - `DataReadWorker` reads binary files, emits `rawDataReady(batchBuffer)`
 - `DataPlaybackDialog::onRawDataReady()` parses frames (header `0xFDB18540` + big-endian length), routes by frame length
 - `m_playbackActive` flag + `clearPlaybackCache()` slots prevent lingering signals after stop
+- All five target dialogs receive playback data: ControllerPanel, LaunchFrameDialog, LaunchProcessDialog, CopyFrameDialog, wavechart
+
+### Serial Channel Architecture
+
+- Three serial ports (serial_E/F/G) map to three EmissionTab instances (控制器1/2/3)
+- `MessageFrameConfig.findFrameFormat(channelId, dataLength)` looks up the correct format per channel
+- `EmissionTab::onMessage()` filters by `m_controllerName→channelId` mapping; A5 → LaunchFrameDialog, A6 → CopyFrameDialog+wavechart+LaunchFrameDialog
+- ControllerPanel and LaunchProcessDialog only accept serial_E (shared singletons); LaunchFrameDialog accepts any serial_ (per-tab instance)
 
 ### Configuration Files
 
 - `bin/config/Info.ini` — IPs, ports, serial params, channel names
-- `bin/config/MessageFrame.json` — Frame format definitions per channelId
+- `bin/config/MessageFrame.json` — Frame format definitions per channelId (serial_E/F/G each with A5+A6)
 - `bin/config/coeff_config.ini` — Collection coefficient formulas
 - `bin/config/criteria_config.ini` — Param range criteria
 

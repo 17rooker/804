@@ -1947,8 +1947,19 @@ void ControllerPanel::initWorkerThread()
 
 void ControllerPanel::onDataProcessed(const QMap<QString, bool> &ledStates, const QMap<QString, QString> &editValues)
 {
-    updateControllerFrameUI(ledStates,editValues);
+    updateControllerFrameUI(ledStates, editValues);
 
+    // 机构准备好判断：拉力(3~60kN) + 压力(0.6~1.3MPa)
+    bool tensionOk = false, pressureOk = false;
+    for (int i = 1; i <= 4; i++) {
+        for (int k = 1; k <= 2; k++) {
+            double t = editValues.value(QString("拉力%1%2").arg(k).arg(i)).toDouble();
+            if (t >= 3.0 && t <= 60.0) tensionOk = true;
+            double p = editValues.value(QString("压力%1%2").arg(k).arg(i)).toDouble();
+            if (p >= 0.6 && p <= 1.3) pressureOk = true;
+        }
+    }
+    emit mechanismReadyChanged(tensionOk && pressureOk);
 }
 
 void ControllerPanel::updateControllerFrameUI(const QMap<QString, bool> &ledStates, const QMap<QString, QString> &editValues)

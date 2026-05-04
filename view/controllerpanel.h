@@ -62,6 +62,9 @@ public:
     // IMessage::onMessage() — 主线程调用，可安全操作 UI
     void onMessage(IEvent* pEvent) override;
 
+signals:
+    void mechanismReadyChanged(bool ready);
+
 public slots:
     void appendData(const QByteArray &data);
     void clearPlaybackCache();

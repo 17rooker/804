@@ -47,11 +47,19 @@ wavechart::wavechart(QWidget *parent) :
 {
     ui->setupUi(this);
 
-    // 创建4个波形图
-    m_chart1 = new ChartWidget(this); ui->gridLayout->addWidget(m_chart1); setupChart(m_chart1, "机构1 电磁阀电压");
-    m_chart2 = new ChartWidget(this); ui->gridLayout_6->addWidget(m_chart2); setupChart(m_chart2, "机构2 电磁阀电压");
-    m_chart3 = new ChartWidget(this); ui->gridLayout_3->addWidget(m_chart3); setupChart(m_chart3, "机构3 电磁阀电压");
-    m_chart4 = new ChartWidget(this); ui->gridLayout_7->addWidget(m_chart4); setupChart(m_chart4, "机构4 电磁阀电压");
+    // 创建4个波形图（机构1纵坐标-1~1，其他-0.1~1）
+    m_chart1 = new ChartWidget(this); ui->gridLayout->addWidget(m_chart1); setupChart(m_chart1, "机构1 电磁阀电压", -1, 1);
+    m_chart2 = new ChartWidget(this); ui->gridLayout_6->addWidget(m_chart2); setupChart(m_chart2, "机构2 电磁阀电压", -0.1, 1);
+    m_chart3 = new ChartWidget(this); ui->gridLayout_3->addWidget(m_chart3); setupChart(m_chart3, "机构3 电磁阀电压", -0.1, 1);
+    m_chart4 = new ChartWidget(this); ui->gridLayout_7->addWidget(m_chart4); setupChart(m_chart4, "机构4 电磁阀电压", -0.1, 1);
+
+    // 绘图节流：每 50ms 定时重绘（非单次，避免被连续数据冲掉）
+    m_plotTimer = new QTimer(this);
+    m_plotTimer->setInterval(50);
+    connect(m_plotTimer, &QTimer::timeout, this, [this]() {
+        plotAinData(m_param);
+    });
+    m_plotTimer->start();
 
     // 回放定时器
     m_updateTimer->setSingleShot(true);
@@ -76,7 +84,6 @@ wavechart::~wavechart() {
 void wavechart::setupChart(ChartWidget *chart, const QString &title) {
     chart->setTitle(title);
     chart->setAxisLabels("采样点", "电流 (A)");
-    chart->setXRange(0.5, 12.5);
     chart->setLegendHide(false);
 
     SeriesData sd;
@@ -87,7 +94,14 @@ void wavechart::setupChart(ChartWidget *chart, const QString &title) {
     for (int i = 0; i < 12; i++) { x[i] = i+1; y[i] = 0; }
     sd.x = x; sd.y = y;
     chart->addSeries(sd);
-    chart->setYRange(0, 12);
+
+    // addSeries 内部 rescaleAxes 会覆盖范围，所以放在之后设
+    chart->setXRange(0, 40000);
+}
+
+void wavechart::setupChart(ChartWidget *chart, const QString &title, double yMin, double yMax) {
+    setupChart(chart, title);
+    chart->setYRange(yMin, yMax);
 }
 
 void wavechart::appendData(const QByteArray &data) {
@@ -107,7 +121,7 @@ void wavechart::clearPlaybackCache() {
 // ═══════════════════════════════════════════════════════════════════════════
 void wavechart::setParam(const STParamInfo &param) {
     m_param = param;
-    plotAinData(param);
+    m_plotTimer->start();
 }
 
 void wavechart::plotAinData(const STParamInfo &param)
@@ -128,7 +142,7 @@ void wavechart::plotAinData(const STParamInfo &param)
             QString key = m.prefix + QString::number(i);
             auto it = param.mapParams.find(key);
             if (it != param.mapParams.end()) {
-                double v = it.value().varParaValue.toUInt() * 0.01952 / 0.51;
+                double v = it.value().varParaValue.toDouble() * 0.01952 / 0.51;
                 y[i-1] = v;
                 if (v > 0) hasData = true;
             } else {

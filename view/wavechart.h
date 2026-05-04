@@ -38,6 +38,7 @@ public slots:
 
 private:
     void setupChart(ChartWidget *chart, const QString &title);
+    void setupChart(ChartWidget *chart, const QString &title, double yMin, double yMax);
     void plotAinData(const STParamInfo &param);
 
     Ui::wavechart *ui;
@@ -51,6 +52,9 @@ private:
     QTimer      *m_updateTimer = nullptr;
     QThread     *m_workerThread = nullptr;
     FrameWaveWorker *m_worker = nullptr;
+
+    // 绘图节流
+    QTimer      *m_plotTimer = nullptr;
 };
 
 #endif // WAVECHART_H
