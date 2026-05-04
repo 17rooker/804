@@ -12374,7 +12374,368 @@
           "byte_count": 3
         }
       ],
-      "frame_body": [],
+      "frame_body": [
+        {
+          "index": 18,
+          "byte_offset": "32-33",
+          "id": "TcpWord1_Code",
+          "description": "信息字1编码",
+          "csv_field": "编码1",
+          "data_type": 7,
+          "byte_count": 2
+        },
+        {
+          "index": 19,
+          "byte_offset": "34-41",
+          "id": "TcpWord1_Standard",
+          "description": "信息字1标准值",
+          "csv_field": "标准值1",
+          "data_type": 11,
+          "byte_count": 8
+        },
+        {
+          "index": 20,
+          "byte_offset": "42-49",
+          "id": "TcpWord1_Deviation",
+          "description": "信息字1偏差值",
+          "csv_field": "偏差值1",
+          "data_type": 11,
+          "byte_count": 8
+        },
+        {
+          "index": 21,
+          "byte_offset": "50",
+          "id": "TcpWord1_Qualified",
+          "description": "信息字1合格标记",
+          "csv_field": "合格1",
+          "data_type": 6,
+          "byte_count": 1
+        },
+        {
+          "index": 22,
+          "byte_offset": "51-52",
+          "id": "TcpWord2_Code",
+          "description": "信息字2编码",
+          "csv_field": "编码2",
+          "data_type": 7,
+          "byte_count": 2
+        },
+        {
+          "index": 23,
+          "byte_offset": "53-60",
+          "id": "TcpWord2_Standard",
+          "description": "信息字2标准值",
+          "csv_field": "标准值2",
+          "data_type": 11,
+          "byte_count": 8
+        },
+        {
+          "index": 24,
+          "byte_offset": "61-68",
+          "id": "TcpWord2_Deviation",
+          "description": "信息字2偏差值",
+          "csv_field": "偏差值2",
+          "data_type": 11,
+          "byte_count": 8
+        },
+        {
+          "index": 25,
+          "byte_offset": "69",
+          "id": "TcpWord2_Qualified",
+          "description": "信息字2合格标记",
+          "csv_field": "合格2",
+          "data_type": 6,
+          "byte_count": 1
+        },
+        {
+          "index": 26,
+          "byte_offset": "70-71",
+          "id": "TcpWord3_Code",
+          "description": "信息字3编码",
+          "csv_field": "编码3",
+          "data_type": 7,
+          "byte_count": 2
+        },
+        {
+          "index": 27,
+          "byte_offset": "72-79",
+          "id": "TcpWord3_Standard",
+          "description": "信息字3标准值",
+          "csv_field": "标准值3",
+          "data_type": 11,
+          "byte_count": 8
+        },
+        {
+          "index": 28,
+          "byte_offset": "80-87",
+          "id": "TcpWord3_Deviation",
+          "description": "信息字3偏差值",
+          "csv_field": "偏差值3",
+          "data_type": 11,
+          "byte_count": 8
+        },
+        {
+          "index": 29,
+          "byte_offset": "88",
+          "id": "TcpWord3_Qualified",
+          "description": "信息字3合格标记",
+          "csv_field": "合格3",
+          "data_type": 6,
+          "byte_count": 1
+        },
+        {
+          "index": 30,
+          "byte_offset": "89-90",
+          "id": "TcpWord4_Code",
+          "description": "信息字4编码",
+          "csv_field": "编码4",
+          "data_type": 7,
+          "byte_count": 2
+        },
+        {
+          "index": 31,
+          "byte_offset": "91-98",
+          "id": "TcpWord4_Standard",
+          "description": "信息字4标准值",
+          "csv_field": "标准值4",
+          "data_type": 11,
+          "byte_count": 8
+        },
+        {
+          "index": 32,
+          "byte_offset": "99-106",
+          "id": "TcpWord4_Deviation",
+          "description": "信息字4偏差值",
+          "csv_field": "偏差值4",
+          "data_type": 11,
+          "byte_count": 8
+        },
+        {
+          "index": 33,
+          "byte_offset": "107",
+          "id": "TcpWord4_Qualified",
+          "description": "信息字4合格标记",
+          "csv_field": "合格4",
+          "data_type": 6,
+          "byte_count": 1
+        },
+        {
+          "index": 34,
+          "byte_offset": "108-109",
+          "id": "TcpWord5_Code",
+          "description": "信息字5编码",
+          "csv_field": "编码5",
+          "data_type": 7,
+          "byte_count": 2
+        },
+        {
+          "index": 35,
+          "byte_offset": "110-117",
+          "id": "TcpWord5_Standard",
+          "description": "信息字5标准值",
+          "csv_field": "标准值5",
+          "data_type": 11,
+          "byte_count": 8
+        },
+        {
+          "index": 36,
+          "byte_offset": "118-125",
+          "id": "TcpWord5_Deviation",
+          "description": "信息字5偏差值",
+          "csv_field": "偏差值5",
+          "data_type": 11,
+          "byte_count": 8
+        },
+        {
+          "index": 37,
+          "byte_offset": "126",
+          "id": "TcpWord5_Qualified",
+          "description": "信息字5合格标记",
+          "csv_field": "合格5",
+          "data_type": 6,
+          "byte_count": 1
+        },
+        {
+          "index": 38,
+          "byte_offset": "127-128",
+          "id": "TcpWord6_Code",
+          "description": "信息字6编码",
+          "csv_field": "编码6",
+          "data_type": 7,
+          "byte_count": 2
+        },
+        {
+          "index": 39,
+          "byte_offset": "129-136",
+          "id": "TcpWord6_Standard",
+          "description": "信息字6标准值",
+          "csv_field": "标准值6",
+          "data_type": 11,
+          "byte_count": 8
+        },
+        {
+          "index": 40,
+          "byte_offset": "137-144",
+          "id": "TcpWord6_Deviation",
+          "description": "信息字6偏差值",
+          "csv_field": "偏差值6",
+          "data_type": 11,
+          "byte_count": 8
+        },
+        {
+          "index": 41,
+          "byte_offset": "145",
+          "id": "TcpWord6_Qualified",
+          "description": "信息字6合格标记",
+          "csv_field": "合格6",
+          "data_type": 6,
+          "byte_count": 1
+        },
+        {
+          "index": 42,
+          "byte_offset": "146-147",
+          "id": "TcpWord7_Code",
+          "description": "信息字7编码",
+          "csv_field": "编码7",
+          "data_type": 7,
+          "byte_count": 2
+        },
+        {
+          "index": 43,
+          "byte_offset": "148-155",
+          "id": "TcpWord7_Standard",
+          "description": "信息字7标准值",
+          "csv_field": "标准值7",
+          "data_type": 11,
+          "byte_count": 8
+        },
+        {
+          "index": 44,
+          "byte_offset": "156-163",
+          "id": "TcpWord7_Deviation",
+          "description": "信息字7偏差值",
+          "csv_field": "偏差值7",
+          "data_type": 11,
+          "byte_count": 8
+        },
+        {
+          "index": 45,
+          "byte_offset": "164",
+          "id": "TcpWord7_Qualified",
+          "description": "信息字7合格标记",
+          "csv_field": "合格7",
+          "data_type": 6,
+          "byte_count": 1
+        },
+        {
+          "index": 46,
+          "byte_offset": "165-166",
+          "id": "TcpWord8_Code",
+          "description": "信息字8编码",
+          "csv_field": "编码8",
+          "data_type": 7,
+          "byte_count": 2
+        },
+        {
+          "index": 47,
+          "byte_offset": "167-174",
+          "id": "TcpWord8_Standard",
+          "description": "信息字8标准值",
+          "csv_field": "标准值8",
+          "data_type": 11,
+          "byte_count": 8
+        },
+        {
+          "index": 48,
+          "byte_offset": "175-182",
+          "id": "TcpWord8_Deviation",
+          "description": "信息字8偏差值",
+          "csv_field": "偏差值8",
+          "data_type": 11,
+          "byte_count": 8
+        },
+        {
+          "index": 49,
+          "byte_offset": "183",
+          "id": "TcpWord8_Qualified",
+          "description": "信息字8合格标记",
+          "csv_field": "合格8",
+          "data_type": 6,
+          "byte_count": 1
+        },
+        {
+          "index": 50,
+          "byte_offset": "184-185",
+          "id": "TcpWord9_Code",
+          "description": "信息字9编码",
+          "csv_field": "编码9",
+          "data_type": 7,
+          "byte_count": 2
+        },
+        {
+          "index": 51,
+          "byte_offset": "186-193",
+          "id": "TcpWord9_Standard",
+          "description": "信息字9标准值",
+          "csv_field": "标准值9",
+          "data_type": 11,
+          "byte_count": 8
+        },
+        {
+          "index": 52,
+          "byte_offset": "194-201",
+          "id": "TcpWord9_Deviation",
+          "description": "信息字9偏差值",
+          "csv_field": "偏差值9",
+          "data_type": 11,
+          "byte_count": 8
+        },
+        {
+          "index": 53,
+          "byte_offset": "202",
+          "id": "TcpWord9_Qualified",
+          "description": "信息字9合格标记",
+          "csv_field": "合格9",
+          "data_type": 6,
+          "byte_count": 1
+        },
+        {
+          "index": 54,
+          "byte_offset": "203-204",
+          "id": "TcpWord10_Code",
+          "description": "信息字10编码",
+          "csv_field": "编码10",
+          "data_type": 7,
+          "byte_count": 2
+        },
+        {
+          "index": 55,
+          "byte_offset": "205-212",
+          "id": "TcpWord10_Standard",
+          "description": "信息字10标准值",
+          "csv_field": "标准值10",
+          "data_type": 11,
+          "byte_count": 8
+        },
+        {
+          "index": 56,
+          "byte_offset": "213-220",
+          "id": "TcpWord10_Deviation",
+          "description": "信息字10偏差值",
+          "csv_field": "偏差值10",
+          "data_type": 11,
+          "byte_count": 8
+        },
+        {
+          "index": 57,
+          "byte_offset": "221",
+          "id": "TcpWord10_Qualified",
+          "description": "信息字10合格标记",
+          "csv_field": "合格10",
+          "data_type": 6,
+          "byte_count": 1
+        }
+      ],
       "frame_tail": []
     }
   ]
