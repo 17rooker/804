@@ -10,10 +10,13 @@
 #include <QDir>
 #include <QCoreApplication>
 #include <QSettings>
+#include <QDateTime>
+#include <QDir>
 #include "src/CustomMessage/DataInteractionManager.h"
 #include "src/Common/LoggerManager.h"
 #include "src/StyleEventFilter.h"
 #include "InitiativeMsgEvent.h"
+#include "src/ControllerCSV/CsvController.h"
 double FrameWorker::calculateCoeff(double x, int row, int col)
 {
     // 1. 构建配置文件路径：运行目录/config/coeff_config.ini
@@ -1960,6 +1963,107 @@ void ControllerPanel::onDataProcessed(const QMap<QString, bool> &ledStates, cons
         }
     }
     emit mechanismReadyChanged(tensionOk && pressureOk);
+
+    // ── CSV数据存储 ──
+    logToCsv(editValues, ledStates);
+}
+
+void ControllerPanel::logToCsv(const QMap<QString, QString> &val, const QMap<QString, bool> &led)
+{
+    // 懒初始化
+    if (!m_csvLogger) {
+        m_csvLogger = new CsvController(this);
+        m_csvLogger->moveToThread(m_workerThread);
+    }
+
+    QString dataPath = ConfigHelper::getInstance().getValue("Storage/DataPath", "D:/数据").toString();
+    QDir dir(dataPath);
+    if (!dir.exists()) dir.mkpath(".");
+
+    QString ts = QDateTime::currentDateTime().toString("yyyy-MM-dd hh:mm:ss.zzz");
+
+    // ── 拉力 ──
+    {
+        static bool inited = false;
+        QString fp = dir.filePath("拉力.csv");
+        if (!inited && !QFile::exists(fp)) {
+            QStringList h = {"时间","机构1牵制拉力1(kN)","机构1牵制拉力2(kN)","机构2牵制拉力1(kN)","机构2牵制拉力2(kN)","机构3牵制拉力1(kN)","机构3牵制拉力2(kN)","机构4牵制拉力1(kN)","机构4牵制拉力2(kN)"};
+            m_csvLogger->write(fp, h, {});
+            inited = true;
+        }
+        QStringList row = {ts};
+        for (int c = 1; c <= 4; c++) {
+            row << val.value(QString("拉力1%1").arg(c), "") << val.value(QString("拉力2%1").arg(c), "");
+        }
+        m_csvLogger->append(fp, {row});
+    }
+
+    // ── 角度 ──
+    {
+        static bool inited = false;
+        QString fp = dir.filePath("角度.csv");
+        if (!inited && !QFile::exists(fp)) {
+            QStringList h = {"时间","机构1牵制状态角(°)","机构2牵制状态角(°)","机构3牵制状态角(°)","机构4牵制状态角(°)"};
+            m_csvLogger->write(fp, h, {});
+            inited = true;
+        }
+        QStringList row = {ts};
+        for (int c = 1; c <= 4; c++)
+            row << val.value(QString("角度%1").arg(c), "");
+        m_csvLogger->append(fp, {row});
+    }
+
+    // ── 压力 ──
+    {
+        static bool inited = false;
+        QString fp = dir.filePath("压力.csv");
+        if (!inited && !QFile::exists(fp)) {
+            QStringList h = {"时间","机构1储气罐压力1(MPa)","机构1储气罐压力2(MPa)","机构2储气罐压力1(MPa)","机构2储气罐压力2(MPa)","机构3储气罐压力1(MPa)","机构3储气罐压力2(MPa)","机构4储气罐压力1(MPa)","机构4储气罐压力2(MPa)"};
+            m_csvLogger->write(fp, h, {});
+            inited = true;
+        }
+        QStringList row = {ts};
+        for (int c = 1; c <= 4; c++)
+            row << val.value(QString("压力1%1").arg(c), "") << val.value(QString("压力2%1").arg(c), "");
+        m_csvLogger->append(fp, {row});
+    }
+
+    // ── 温度 ──
+    {
+        static bool inited = false;
+        QString fp = dir.filePath("温度.csv");
+        if (!inited && !QFile::exists(fp)) {
+            QStringList h = {"时间","机构1内部温度1(°C)","机构1内部温度2(°C)","机构2内部温度1(°C)","机构2内部温度2(°C)","机构3内部温度1(°C)","机构3内部温度2(°C)","机构4内部温度1(°C)","机构4内部温度2(°C)"};
+            m_csvLogger->write(fp, h, {});
+            inited = true;
+        }
+        QStringList row = {ts};
+        for (int c = 1; c <= 4; c++)
+            row << val.value(QString("温度1%1").arg(c), "") << val.value(QString("温度2%1").arg(c), "");
+        m_csvLogger->append(fp, {row});
+    }
+
+    // ── 时序 ──
+    {
+        static bool inited = false;
+        QString fp = dir.filePath("时序.csv");
+        if (!inited && !QFile::exists(fp)) {
+            QStringList h = {"时间","机构1-解锁到位时间(s)","机构1-释放好时间(s)","机构1-释放到位时间(s)","机构1-火引爆时间",
+                                   "机构2-解锁到位时间(s)","机构2-释放好时间(s)","机构2-释放到位时间(s)","机构2-火引爆时间",
+                                   "机构3-解锁到位时间(s)","机构3-释放好时间(s)","机构3-释放到位时间(s)","机构3-火引爆时间",
+                                   "机构4-解锁到位时间(s)","机构4-释放好时间(s)","机构4-释放到位时间(s)","机构4-火引爆时间"};
+            m_csvLogger->write(fp, h, {});
+            inited = true;
+        }
+        QStringList row = {ts};
+        for (int c = 1; c <= 4; c++) {
+            row << val.value(QString("机构%1-解锁到位时间(s)").arg(c), "");
+            row << val.value(QString("机构%1-释放好时间(s)").arg(c), "");
+            row << val.value(QString("机构%1-释放到位时间(s)").arg(c), "");
+            row << val.value(QString("机构%1-火引爆时间").arg(c), "");
+        }
+        m_csvLogger->append(fp, {row});
+    }
 }
 
 void ControllerPanel::updateControllerFrameUI(const QMap<QString, bool> &ledStates, const QMap<QString, QString> &editValues)
