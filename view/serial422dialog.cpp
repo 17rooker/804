@@ -29,6 +29,7 @@ Serial422Dialog::Serial422Dialog(QWidget *parent) : QDialog(parent)
 
     setupUI();
     scanPorts(); // 初始化时扫描一次
+    m_originalSerialConfigs = getAllControllerConfigs();
 }
 
 Serial422Dialog::~Serial422Dialog()
@@ -268,29 +269,48 @@ QList<SerialControllerConfig> Serial422Dialog::getAllControllerConfigs() const
     return cfgs;
 }
 
+// ── 检测串口配置是否发生变化 ──
+bool Serial422Dialog::serialConfigChanged() const
+{
+    QList<SerialControllerConfig> current = getAllControllerConfigs();
+    if (current.size() != m_originalSerialConfigs.size()) return true;
+    for (int i = 0; i < current.size(); i++) {
+        const auto &a = current[i];
+        const auto &b = m_originalSerialConfigs[i];
+        if (a.channelId != b.channelId) return true;
+        if (a.serialCfg.portName    != b.serialCfg.portName)    return true;
+        if (a.serialCfg.baudRate    != b.serialCfg.baudRate)    return true;
+        if (a.serialCfg.dataBits    != b.serialCfg.dataBits)    return true;
+        if (a.serialCfg.stopBits    != b.serialCfg.stopBits)    return true;
+        if (a.serialCfg.parity      != b.serialCfg.parity)      return true;
+        if (a.serialCfg.flowControl != b.serialCfg.flowControl) return true;
+    }
+    return false;
+}
+
 // 重写accept函数，整合「确认配置」的逻辑
 void Serial422Dialog::accept()
 {
-    // ========== 1. 原有串口配置更新逻辑 ==========
-    QList<SerialControllerConfig> ctrlCfgs = getAllControllerConfigs();
-
     bool allSuccess = true;
     QString failChannels;
     auto& commMgr = CommManager::instance();
 
-    for (const auto& cfg : ctrlCfgs) {
-        // 跳过无有效串口号的配置
-        if (cfg.serialCfg.portName.isEmpty() || cfg.serialCfg.portName == "无可用串口") {
-            failChannels += cfg.channelId + "（无有效串口）、";
-            allSuccess = false;
-            continue;
+    // ========== 1. 串口配置（仅在变化时更新）==========
+    if (serialConfigChanged()) {
+        QList<SerialControllerConfig> ctrlCfgs = getAllControllerConfigs();
+        for (const auto& cfg : ctrlCfgs) {
+            if (cfg.serialCfg.portName.isEmpty() || cfg.serialCfg.portName == "无可用串口") {
+                failChannels += cfg.channelId + "（无有效串口）、";
+                allSuccess = false;
+                continue;
+            }
+            bool ret = commMgr.updateSerialChannel(cfg.channelId, cfg.serialCfg);
+            if (!ret) {
+                allSuccess = false;
+                failChannels += cfg.channelId + "、";
+            }
         }
-        // 调用CommManager更新串口通道
-        bool ret = commMgr.updateSerialChannel(cfg.channelId, cfg.serialCfg);
-        if (!ret) {
-            allSuccess = false;
-            failChannels += cfg.channelId + "、";
-        }
+        m_originalSerialConfigs = getAllControllerConfigs();
     }
 
     // ========== 2. 新增：电源TCP配置更新逻辑 ==========

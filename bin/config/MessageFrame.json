@@ -12210,6 +12210,172 @@
         }
       ],
       "total_bytes": 97
+    },
+    {
+      "channel_id": "tcp_device_serverRemote",
+      "frame_type": 3,
+      "frame_id": 20000,
+      "postback": true,
+      "fixed_length": false,
+      "big_endian": true,
+      "description": "TCP运控数据帧格式",
+      "frame_header": [
+        {
+          "index": 1,
+          "byte_offset": "0-1",
+          "id": "TcpSync",
+          "description": "帧同步",
+          "csv_field": "帧同步",
+          "data_type": 6,
+          "byte_count": 2
+        },
+        {
+          "index": 2,
+          "byte_offset": "2-3",
+          "id": "TcpFrameLen",
+          "description": "帧长",
+          "csv_field": "帧长",
+          "data_type": 7,
+          "byte_count": 2
+        },
+        {
+          "index": 3,
+          "byte_offset": "4",
+          "id": "TcpFrameType",
+          "description": "帧类型",
+          "csv_field": "帧类型",
+          "data_type": 6,
+          "byte_count": 1
+        },
+        {
+          "index": 4,
+          "byte_offset": "5-6",
+          "id": "TcpFrameId",
+          "description": "帧标识",
+          "csv_field": "帧标识",
+          "data_type": 6,
+          "byte_count": 2
+        },
+        {
+          "index": 5,
+          "byte_offset": "7",
+          "id": "TcpSrcSys",
+          "description": "信源系统编码",
+          "csv_field": "信源系统",
+          "data_type": 6,
+          "byte_count": 1
+        },
+        {
+          "index": 6,
+          "byte_offset": "8",
+          "id": "TcpSrcNode",
+          "description": "信源节点编码",
+          "csv_field": "信源节点",
+          "data_type": 6,
+          "byte_count": 1
+        },
+        {
+          "index": 7,
+          "byte_offset": "9",
+          "id": "TcpDstSys",
+          "description": "信宿系统编码",
+          "csv_field": "信宿系统",
+          "data_type": 6,
+          "byte_count": 1
+        },
+        {
+          "index": 8,
+          "byte_offset": "10",
+          "id": "TcpDstNode",
+          "description": "信宿节点编码",
+          "csv_field": "信宿节点",
+          "data_type": 6,
+          "byte_count": 1
+        },
+        {
+          "index": 9,
+          "byte_offset": "11-12",
+          "id": "TcpDateYear",
+          "description": "日期年",
+          "csv_field": "年",
+          "data_type": 7,
+          "byte_count": 2
+        },
+        {
+          "index": 10,
+          "byte_offset": "13",
+          "id": "TcpDateMonth",
+          "description": "日期月",
+          "csv_field": "月",
+          "data_type": 6,
+          "byte_count": 1
+        },
+        {
+          "index": 11,
+          "byte_offset": "14",
+          "id": "TcpDateDay",
+          "description": "日期日",
+          "csv_field": "日",
+          "data_type": 6,
+          "byte_count": 1
+        },
+        {
+          "index": 12,
+          "byte_offset": "15-18",
+          "id": "TcpTime",
+          "description": "时间",
+          "csv_field": "时间",
+          "data_type": 8,
+          "byte_count": 4
+        },
+        {
+          "index": 13,
+          "byte_offset": "19-22",
+          "id": "TcpFrameCount",
+          "description": "帧计数",
+          "csv_field": "帧计数",
+          "data_type": 8,
+          "byte_count": 4
+        },
+        {
+          "index": 14,
+          "byte_offset": "23-24",
+          "id": "TcpWordCount",
+          "description": "信息字个数",
+          "csv_field": "信息字数",
+          "data_type": 7,
+          "byte_count": 2
+        },
+        {
+          "index": 15,
+          "byte_offset": "25-26",
+          "id": "TcpWordType",
+          "description": "信息字类别",
+          "csv_field": "信息字类别",
+          "data_type": 7,
+          "byte_count": 2
+        },
+        {
+          "index": 16,
+          "byte_offset": "27-28",
+          "id": "TcpChecksum",
+          "description": "校验和",
+          "csv_field": "校验和",
+          "data_type": 7,
+          "byte_count": 2
+        },
+        {
+          "index": 17,
+          "byte_offset": "29-31",
+          "id": "TcpReserved",
+          "description": "备用字节",
+          "csv_field": "备用",
+          "data_type": 6,
+          "byte_count": 3
+        }
+      ],
+      "frame_body": [],
+      "frame_tail": []
     }
   ]
 }

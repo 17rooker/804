@@ -2,28 +2,32 @@
 #define REMOTESETTINGWIDGET_H
 
 #include <QWidget>
+#include "src/CustomMessage/IMessage.h"
 
 class QLineEdit;
 class QPushButton;
+class QLabel;
 
-class RemoteSettingWidget : public QWidget
+class RemoteSettingWidget : public QWidget, public IMessage
 {
     Q_OBJECT
 
 public:
     explicit RemoteSettingWidget(QWidget *parent = nullptr);
     ~RemoteSettingWidget();
+    bool condition() override { return isVisible(); }
+    void onMessage(IEvent* pEvent) override;
 
 private slots:
-    void onBrowseFolder();          // 选择数据存储路径
-    void onApplyTcp();              // 应用TCP配置
-    void onApplyUdp();              // 应用UDP组播配置
+    void onBrowseFolder();
+    void onApplyTcp();
+    void onApplyUdp();
 
 private:
-    void setupUI();                 // 构建界面
-    void loadConfig();              // 从Info.ini加载当前值
+    void setupUI();
+    void setupDisplayUI(QWidget *parent);
+    void loadConfig();
 
-    // 控件指针
     QLineEdit *m_editServerIp;
     QLineEdit *m_editServerPort;
     QLineEdit *m_editMcastIp;
@@ -32,6 +36,16 @@ private:
     QPushButton *m_btnBrowse;
     QPushButton *m_btnApplyTcp;
     QPushButton *m_btnApplyUdp;
+
+    // TCP运控数据显示
+    QLabel *m_lblTcpFrameType  = nullptr;
+    QLabel *m_lblTcpFrameCount = nullptr;
+    QLabel *m_lblTcpWordCount  = nullptr;
+    QLabel *m_lblTcpWordType   = nullptr;
+    QLabel *m_lblTcpSrc       = nullptr;
+    QLabel *m_lblTcpDst       = nullptr;
+    QLabel *m_lblTcpTime      = nullptr;
+    QLabel *m_lblTcpDate      = nullptr;
 };
 
 #endif // REMOTESETTINGWIDGET_H

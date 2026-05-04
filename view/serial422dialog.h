@@ -41,6 +41,9 @@ public:
     // 获取所有控制器的配置
     QList<SerialControllerConfig> getAllControllerConfigs() const;
 
+    // 检测串口配置是否发生了变化
+    bool serialConfigChanged() const;
+
 protected:
     // 重写QDialog的accept函数，整合配置生效逻辑
     void accept() override;
@@ -60,6 +63,9 @@ private:
     SerialGroup m_ctrl1;
     SerialGroup m_ctrl2;
     SerialGroup m_ctrl3;
+
+    // 保存上次确认的串口配置，用于检测变化
+    QList<SerialControllerConfig> m_originalSerialConfigs;
 
     // 按钮成员变量（移除了确认配置按钮）
     QPushButton *m_btnOk;
