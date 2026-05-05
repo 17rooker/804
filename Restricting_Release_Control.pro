@@ -66,13 +66,14 @@ SOURCES += \
     main.cpp \
     mainwindow.cpp \
     view/powersettingwidge.cpp \
+    view/programpowersupply.cpp \
     view/remotesettingwidget.cpp \
     view/serial422dialog.cpp \
     view/simulateddata.cpp \
     view/spinslider.cpp \
     view/styledledlabel.cpp \
+    view/postanalysisdialog.cpp \
     view/styledlineedit.cpp \
- \#    view/testframewgt.cpp
     view/wavechart.cpp
 
 HEADERS += \
@@ -125,6 +126,8 @@ HEADERS += \
     view/ledindicator.h \
     mainwindow.h \
     view/powersettingwidge.h \
+    view/programpowersupply.h \
+    view/postanalysisdialog.h \
     view/remotesettingwidget.h \
     view/serial422dialog.h \
     view/simulateddata.h \

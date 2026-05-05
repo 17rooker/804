@@ -8,11 +8,13 @@
 #include <QtEndian>
 #include <QScriptEngine>
 #include <QDir>
+#include <QDateTime>
 #include <QCoreApplication>
 #include <QSettings>
 #include "src/CustomMessage/DataInteractionManager.h"
 #include "src/Common/LoggerManager.h"
 #include "src/StyleEventFilter.h"
+#include "src/Common/ConfigHelper.h"
 #include "InitiativeMsgEvent.h"
 double FrameWorker::calculateCoeff(double x, int row, int col)
 {
@@ -1231,6 +1233,7 @@ void FrameWorker::paramProcess(STParamInfo &m_param, QMap<QString, bool> &m_ledS
                 m_ledStates[QString("机构%1-牵制拉力异常").arg(i)] = tensionOut;
 
                 m_editValues[QString("机构%1-牵制拉力1(kN)").arg(i)] = QString::number(res, 'f', 2);
+                m_editValues[QString("Raw_T1_C%1").arg(i)] = QString::number(adValue);
             }
             else if(mapIt.key() == QString("TensionAmplifier2%1").arg(i))
             {
@@ -1243,6 +1246,7 @@ void FrameWorker::paramProcess(STParamInfo &m_param, QMap<QString, bool> &m_ledS
                 qint16 adValue = rawValue & 0x0FFF;
                 double res=calculateCoeff(adValue,1,i-1);
                 m_editValues[QString("机构%1-牵制拉力2(kN)").arg(i)] = QString::number(res, 'f', 2);
+                m_editValues[QString("Raw_T2_C%1").arg(i)] = QString::number(adValue);
             }
             else if(mapIt.key() == QString("AngleSensorValue%1").arg(i))
             {
@@ -1257,6 +1261,7 @@ void FrameWorker::paramProcess(STParamInfo &m_param, QMap<QString, bool> &m_ledS
 
                 // 存入状态字典
                 m_editValues[QString("机构%1-牵制状态角(°)").arg(i)] = QString::number(res, 'f', 2);
+                m_editValues[QString("Raw_Angle_C%1").arg(i)] = QString::number(rawValue);
             }
             else if(mapIt.key() == QString("PressureAmplifier1%1").arg(i))
             {
@@ -1291,6 +1296,7 @@ void FrameWorker::paramProcess(STParamInfo &m_param, QMap<QString, bool> &m_ledS
                 double res=calculateCoeff(adValue,4,i-1);
                 // 存入状态字典
                 m_editValues[QString("机构%1-储气罐压力2(MPa)").arg(i)] = QString::number(res ,'f', 2);
+                m_editValues[QString("Raw_P2_C%1").arg(i)] = QString::number(adValue);
             }
             // 温度变换器1
             else if(mapIt.key() == QString("TemperatureConverter1%1").arg(i))
@@ -1310,6 +1316,7 @@ void FrameWorker::paramProcess(STParamInfo &m_param, QMap<QString, bool> &m_ledS
                 double res=calculateCoeff(adValue,5,i-1);
 
                 m_editValues[QString("机构%1-内部温度1(°C)").arg(i)] = QString::number(res ,'f', 2);
+                m_editValues[QString("Raw_Temp1_C%1").arg(i)] = QString::number(adValue);
             }
             // 温度变换器2
             else if(mapIt.key() == QString("TemperatureConverter2%1").arg(i))
@@ -1325,6 +1332,7 @@ void FrameWorker::paramProcess(STParamInfo &m_param, QMap<QString, bool> &m_ledS
                 double res=calculateCoeff(adValue,5,i-1);
 
                 m_editValues[QString("机构%1-内部温度2(°C)").arg(i)] = QString::number(res ,'f', 2);
+                m_editValues[QString("Raw_Temp2_C%1").arg(i)] = QString::number(adValue);
             }
             // 28V+ 采集
             else if(mapIt.key() == QString("Voltage28VPlus%1").arg(i))
@@ -1846,6 +1854,8 @@ ControllerPanel::ControllerPanel(QWidget *parent) : QWidget(parent)
 
     connect(m_updateTimer, &QTimer::timeout, this, &ControllerPanel::onTimerTimeout);
 
+    // CSV 存储初始化
+    initCsvStorage();
 }
 
 ControllerPanel::~ControllerPanel()
@@ -1853,6 +1863,7 @@ ControllerPanel::~ControllerPanel()
     DataInteractionManager::getInstance()
         .getMsgHandle()
         ->unSubMessageAll(this);
+    flushCsv();  // 确保剩余CSV数据写入
     m_workerThread->quit();
     m_workerThread->wait();
 }
@@ -1960,6 +1971,91 @@ void ControllerPanel::onDataProcessed(const QMap<QString, bool> &ledStates, cons
         }
     }
     emit mechanismReadyChanged(tensionOk && pressureOk);
+
+    // CSV 存储：缓存数据，定时写入
+    if (m_csvController) {
+        QString ts = QDateTime::currentDateTime().toString("yyyy-MM-dd HH:mm:ss.zzz");
+        CsvRow row;
+        row << ts;
+        // 拉力原始ADC
+        for (int i = 1; i <= 4; i++) row << editValues.value(QString("Raw_T1_C%1").arg(i), "--");
+        for (int i = 1; i <= 4; i++) row << editValues.value(QString("Raw_T2_C%1").arg(i), "--");
+        // 角度原始值
+        for (int i = 1; i <= 4; i++) row << editValues.value(QString("Raw_Angle_C%1").arg(i), "--");
+        // 压力原始ADC
+        for (int i = 1; i <= 4; i++) row << editValues.value(QString("Raw_P1_C%1").arg(i), "--");
+        for (int i = 1; i <= 4; i++) row << editValues.value(QString("Raw_P2_C%1").arg(i), "--");
+        // 温度原始ADC
+        for (int i = 1; i <= 4; i++) row << editValues.value(QString("Raw_Temp1_C%1").arg(i), "--");
+        for (int i = 1; i <= 4; i++) row << editValues.value(QString("Raw_Temp2_C%1").arg(i), "--");
+        // 状态LED
+        QString statusLEDs[] = {"机构1-快速分离解锁到位","机构2-快速分离解锁到位","机构3-快速分离解锁到位","机构4-快速分离解锁到位",
+            "机构1-释放到位","机构2-释放到位","机构3-释放到位","机构4-释放到位",
+            "机构1-牵制臂复位到位","机构2-牵制臂复位到位","机构3-牵制臂复位到位","机构4-牵制臂复位到位",
+            "机构1-锁定到位","机构2-锁定到位","机构3-锁定到位","机构4-锁定到位",
+            "机构1-释放好","机构2-释放好","机构3-释放好","机构4-释放好"};
+        for (auto &k : statusLEDs) row << (ledStates.value(k, false) ? "1" : "0");
+        // 报警LED
+        QString alarmLEDs[] = {"机构1-牵制拉力异常","机构2-牵制拉力异常","机构3-牵制拉力异常","机构4-牵制拉力异常",
+            "机构1-储气罐压力异常","机构2-储气罐压力异常","机构3-储气罐压力异常","机构4-储气罐压力异常",
+            "机构1-控制电缆连接情况","机构2-控制电缆连接情况","机构3-控制电缆连接情况","机构4-控制电缆连接情况"};
+        for (auto &k : alarmLEDs) row << (ledStates.value(k, false) ? "1" : "0");
+        // 时序
+        row << editValues.value("机构1-解锁到位时间(s)", "--") << editValues.value("机构2-解锁到位时间(s)", "--")
+            << editValues.value("机构3-解锁到位时间(s)", "--") << editValues.value("机构4-解锁到位时间(s)", "--");
+        row << editValues.value("机构1-释放到位时间(s)", "--") << editValues.value("机构2-释放到位时间(s)", "--")
+            << editValues.value("机构3-释放到位时间(s)", "--") << editValues.value("机构4-释放到位时间(s)", "--");
+
+        m_csvPendingRows.append(row);
+        if (m_csvPendingRows.size() >= 50)
+            flushCsv();
+    }
+}
+
+void ControllerPanel::flushCsv()
+{
+    if (!m_csvController || m_csvPendingRows.isEmpty()) return;
+    m_csvController->append(m_csvFilePath, m_csvPendingRows);
+    m_csvPendingRows.clear();
+}
+
+void ControllerPanel::initCsvStorage()
+{
+    m_csvController = new CsvController(this);
+    QString dataPath = ConfigHelper::getInstance().getValue("Storage/DataPath", "D:/数据").toString();
+    QDir dir(dataPath);
+    if (!dir.exists()) dir.mkpath(".");
+
+    QString fileName = QDateTime::currentDateTime().toString("yyyyMMdd_HHmmss") + "_controller.csv";
+    m_csvFilePath = dir.filePath(fileName);
+
+    // CSV 表头
+    m_csvHeader << "时间";
+    for (int i = 1; i <= 4; i++) m_csvHeader << QString("拉力1-采集器%1").arg(i);
+    for (int i = 1; i <= 4; i++) m_csvHeader << QString("拉力2-采集器%1").arg(i);
+    for (int i = 1; i <= 4; i++) m_csvHeader << QString("角度-采集器%1").arg(i);
+    for (int i = 1; i <= 4; i++) m_csvHeader << QString("压力1-采集器%1").arg(i);
+    for (int i = 1; i <= 4; i++) m_csvHeader << QString("压力2-采集器%1").arg(i);
+    for (int i = 1; i <= 4; i++) m_csvHeader << QString("温度1-采集器%1").arg(i);
+    for (int i = 1; i <= 4; i++) m_csvHeader << QString("温度2-采集器%1").arg(i);
+    QStringList statusNames = {"快速分离解锁到位","释放到位","牵制臂复位到位","锁定到位","释放好"};
+    for (auto &sn : statusNames)
+        for (int i = 1; i <= 4; i++) m_csvHeader << QString("机构%1-%2").arg(i).arg(sn);
+    QStringList alarmNames = {"牵制拉力异常","储气罐压力异常","控制电缆连接情况"};
+    for (auto &an : alarmNames)
+        for (int i = 1; i <= 4; i++) m_csvHeader << QString("机构%1-%2").arg(i).arg(an);
+    m_csvHeader << "解锁到位时间1" << "解锁到位时间2" << "解锁到位时间3" << "解锁到位时间4";
+    m_csvHeader << "释放到位时间1" << "释放到位时间2" << "释放到位时间3" << "释放到位时间4";
+
+    CsvWriteConfig cfg;
+    cfg.writeHeader = true;
+    m_csvController->write(m_csvFilePath, m_csvHeader, CsvData(), cfg);
+
+    // 定时器每5秒刷一次缓存
+    m_csvTimer = new QTimer(this);
+    m_csvTimer->setInterval(5000);
+    connect(m_csvTimer, &QTimer::timeout, this, &ControllerPanel::flushCsv);
+    m_csvTimer->start();
 }
 
 void ControllerPanel::updateControllerFrameUI(const QMap<QString, bool> &ledStates, const QMap<QString, QString> &editValues)

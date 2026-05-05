@@ -63,6 +63,8 @@ private:
     void onFrameClicked();        // 回传
     void onClearClicked();        // 清零
     void onSendClicked();         // 发送
+    void onExportClicked();       // 导出装订参数
+    void onImportClicked();       // 导入装订参数
     // 控件声明
     ClickableComboBox *cbSerialPort;    // 串口通道下拉框
     ClickableComboBox *cbControlWord;   // 控制字下拉框

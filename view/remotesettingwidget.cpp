@@ -38,55 +38,8 @@ RemoteSettingWidget::~RemoteSettingWidget()
 
 void RemoteSettingWidget::onMessage(IEvent *pEvent)
 {
-    if (!pEvent) return;
-    if (pEvent->getType() != EventType::E_InitiativeMsg) return;
-
-    auto *pInit = static_cast<InitiativeMsgEvent*>(pEvent);
-    const STParamInfo &param = pInit->getParamData();
-
-    if (param.channelId != "tcp_device_serverRemote") return;
-
-    // 更新TCP运控数据显示
-    auto setVal = [&](QLabel *lbl, const QString &key) {
-        if (!lbl) return;
-        auto it = param.mapParams.find(key);
-        if (it != param.mapParams.end())
-            lbl->setText(it.value().varParaValue.toString());
-    };
-
-    setVal(m_lblTcpFrameType,  "TcpFrameType");
-    setVal(m_lblTcpFrameCount, "TcpFrameCount");
-    setVal(m_lblTcpWordCount,  "TcpWordCount");
-    setVal(m_lblTcpWordType,   "TcpWordType");
-
-    if (m_lblTcpSrc) {
-        auto si = param.mapParams.find("TcpSrcSys");
-        auto ni = param.mapParams.find("TcpSrcNode");
-        if (si != param.mapParams.end() && ni != param.mapParams.end())
-            m_lblTcpSrc->setText(QString("%1.%2").arg(si.value().varParaValue.toUInt()).arg(ni.value().varParaValue.toUInt()));
-    }
-    if (m_lblTcpDst) {
-        auto si = param.mapParams.find("TcpDstSys");
-        auto ni = param.mapParams.find("TcpDstNode");
-        if (si != param.mapParams.end() && ni != param.mapParams.end())
-            m_lblTcpDst->setText(QString("%1.%2").arg(si.value().varParaValue.toUInt()).arg(ni.value().varParaValue.toUInt()));
-    }
-
-    // 日期时间
-    if (m_lblTcpDate) {
-        auto yr = param.mapParams.find("TcpDateYear");
-        auto mo = param.mapParams.find("TcpDateMonth");
-        auto dy = param.mapParams.find("TcpDateDay");
-        if (yr != param.mapParams.end() && mo != param.mapParams.end() && dy != param.mapParams.end())
-            m_lblTcpDate->setText(QString("%1-%2-%3").arg(yr.value().varParaValue.toUInt()).arg(mo.value().varParaValue.toUInt(),2,10,QChar('0')).arg(dy.value().varParaValue.toUInt(),2,10,QChar('0')));
-    }
-    if (m_lblTcpTime) {
-        auto ti = param.mapParams.find("TcpTime");
-        if (ti != param.mapParams.end()) {
-            quint32 t = ti.value().varParaValue.toUInt();
-            m_lblTcpTime->setText(QString("%1:%2:%3").arg(t/3600,2,10,QChar('0')).arg((t%3600)/60,2,10,QChar('0')).arg(t%60,2,10,QChar('0')));
-        }
-    }
+    // TCP运控数据显示已移除
+    Q_UNUSED(pEvent);
 }
 
 void RemoteSettingWidget::loadConfig()
@@ -171,14 +124,9 @@ void RemoteSettingWidget::setupUI()
     pathLayout->addWidget(m_editDataPath);
     pathLayout->addWidget(m_btnBrowse);
 
-    // ── TCP运控数据显示 ──
-    QGroupBox *groupDisplay = new QGroupBox("TCP 运控数据");
-    setupDisplayUI(groupDisplay);
-
     // ── 加入主布局 ──
     mainLayout->addWidget(groupTcp);
     mainLayout->addWidget(groupUdp);
-    mainLayout->addWidget(groupDisplay);
     mainLayout->addWidget(groupPath);
     mainLayout->addStretch();
 
@@ -186,32 +134,6 @@ void RemoteSettingWidget::setupUI()
     connect(m_btnBrowse, &QPushButton::clicked, this, &RemoteSettingWidget::onBrowseFolder);
     connect(m_btnApplyTcp, &QPushButton::clicked, this, &RemoteSettingWidget::onApplyTcp);
     connect(m_btnApplyUdp, &QPushButton::clicked, this, &RemoteSettingWidget::onApplyUdp);
-}
-
-void RemoteSettingWidget::setupDisplayUI(QWidget *parent)
-{
-    auto *grid = new QGridLayout(parent);
-    grid->setSpacing(4);
-    grid->setContentsMargins(10, 20, 10, 10);
-
-    auto addRow = [&](int row, const QString &label, QLabel *&value) {
-        auto *lbl = new QLabel(label);
-        lbl->setAlignment(Qt::AlignRight | Qt::AlignVCenter);
-        value = new QLabel("--");
-        value->setStyleSheet("background: black; color: #00FF00; padding: 2px 6px; font-family: Consolas;");
-        value->setFixedHeight(24);
-        grid->addWidget(lbl,  row, 0);
-        grid->addWidget(value, row, 1);
-    };
-
-    addRow(0, "帧类型",     m_lblTcpFrameType);
-    addRow(1, "帧计数",     m_lblTcpFrameCount);
-    addRow(2, "信息字数",   m_lblTcpWordCount);
-    addRow(3, "信息字类别", m_lblTcpWordType);
-    addRow(4, "信源",       m_lblTcpSrc);
-    addRow(5, "信宿",       m_lblTcpDst);
-    addRow(6, "日期",       m_lblTcpDate);
-    addRow(7, "时间",       m_lblTcpTime);
 }
 
 void RemoteSettingWidget::onBrowseFolder()

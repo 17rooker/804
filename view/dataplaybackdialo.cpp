@@ -372,28 +372,24 @@ void DataPlaybackDialog::initWorkerThread()
 void DataPlaybackDialog::destroyWorkerThread()
 {
     if (m_workerThread) {
-        // 停止读取
-        if (m_readWorker) {
+        if (m_readWorker)
             m_readWorker->stopRead();
-        }
 
-        // 退出线程并等待
         m_workerThread->quit();
         if (!m_workerThread->wait(1000)) {
             m_workerThread->terminate();
             m_workerThread->wait(500);
         }
 
-        // 断开所有连接，避免重复销毁
-        m_workerThread->disconnect();
-
-        // 手动删除线程（父对象是this，也可以靠父对象销毁，但显式删除更安全）
-        delete m_workerThread;
+        // 先断开 worker 连接，再删除线程，确保 deleteLater 正常执行
+        if (m_readWorker) {
+            m_readWorker->disconnect();
+            m_readWorker->deleteLater();
+        }
+        m_workerThread->deleteLater();
         m_workerThread = nullptr;
+        m_readWorker = nullptr;
     }
-
-    // worker会被deleteLater，这里直接置空指针即可
-    m_readWorker = nullptr;
 }
 
 void DataPlaybackDialog::initConnections()

@@ -78,6 +78,14 @@ Each worker's `processData()`:
 
 - **MainWindow**: CEC status LED reflects TCP remote connection (green/gray). 远控记录 QTextEdit logs connection/disconnection events with timestamps (transition-only, using `static prevState`). Right-click "清除记录" context menu.
 - **Mechanism Ready**: `ControllerPanel::onDataProcessed()` checks sensor criteria: 拉力(3~60kN, any of 2) + 压力(0.6~1.3MPa, any of 2). Emits `mechanismReadyChanged(bool)` → MainWindow's `m_lblStatusLight` LED (green=ready, gray=not). Same `ChartWidget::updateSeries` also removed `rescaleAxes()` to preserve user zoom.
+- **CSV Storage**: `ControllerPanel::onDataProcessed()` collects sensor data (拉力/角度/压力/温度/时序) into `CsvController`. File at `Storage/DataPath` from `Info.ini`, auto-named yyyyMMdd_HHmmss_controller.csv. Buffered: flushes every 50 rows or 5s timer, plus on destructor.
+- **PostAnalysisDialog**: Dialog opened from MainWindow "事后分析" button. Contains ChartWidget for data analysis curves, zoom/pan tool buttons, and parameter display panel.
+- **ProgramPowerSupply**: Dialog opened from MainWindow "程序电源" button. Shows 6 power channels with voltage/current setting, remote control status, power output control, and fault status.
+
+### RemoteSettingWidget (运控设置)
+
+- TCP/UDP parameters hot-configurable via "应用" buttons. Saves to `Info.ini`, calls `CommManager::updateXxxChannel()`.
+- Subscribes to `E_RealTimeData`, `onMessage` parses TCP protocol (32-byte header + info words), displays frame type/count/source/destination/date/time.
 
 ### UI Widget Mapping Pattern
 

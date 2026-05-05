@@ -3,6 +3,10 @@
 #include <QScrollArea>
 #include <QComboBox>
 #include <QStyleOptionComboBox>
+#include <QFileDialog>
+#include <QFile>
+#include <QTextStream>
+#include <QMessageBox>
 #include <qlistview.h>
 #include <QApplication>  // 新增：剪贴板依赖
 #include <QMenu>         // 新增：右键菜单依赖
@@ -159,36 +163,29 @@ void bookbindingwgt::initUI()
     hlayout1->addWidget(btnSend);
     hlayout1->addStretch();
 
-    // ========== 第二行：存储/导入/导出/清零/退出 ==========
+    // ========== 第二行：导出/导入/清零/退出 ==========
     QHBoxLayout *hlayout2 = new QHBoxLayout;
-    // 统一布局边距和间距
     hlayout2->setContentsMargins(0, 0, 0, 0);
     hlayout2->setSpacing(8);
 
-    QPushButton *btnSave = new QPushButton("存储");
-    QPushButton *btnImport = new QPushButton("导入");
     QPushButton *btnExport = new QPushButton("导出");
+    QPushButton *btnImport = new QPushButton("导入");
     QPushButton *btnClear = new QPushButton("清零");
     QPushButton *btnQuit = new QPushButton("退出");
 
-    // 统一按钮最小宽度（保证尺寸一致）
     int btnMinWidth = 80;
-    btnSave->setMinimumWidth(btnMinWidth);
-    btnImport->setMinimumWidth(btnMinWidth);
     btnExport->setMinimumWidth(btnMinWidth);
+    btnImport->setMinimumWidth(btnMinWidth);
     btnClear->setMinimumWidth(btnMinWidth);
     btnQuit->setMinimumWidth(btnMinWidth);
 
-    hlayout2->addWidget(btnSave);
-    hlayout2->addWidget(btnImport);
     hlayout2->addWidget(btnExport);
+    hlayout2->addWidget(btnImport);
     hlayout2->addWidget(btnClear);
     hlayout2->addWidget(btnQuit);
 
-    // 设置拉伸因子：按钮均匀分布占满整行
-    hlayout2->setStretchFactor(btnSave, 1);
-    hlayout2->setStretchFactor(btnImport, 1);
     hlayout2->setStretchFactor(btnExport, 1);
+    hlayout2->setStretchFactor(btnImport, 1);
     hlayout2->setStretchFactor(btnClear, 1);
     hlayout2->setStretchFactor(btnQuit, 1);
 
@@ -368,12 +365,11 @@ void bookbindingwgt::initUI()
     connect(btnForbidBind, &QPushButton::clicked, this, &bookbindingwgt::onForbidBindClicked);
     connect(btnReadParam, &QPushButton::clicked, this, &bookbindingwgt::onReadParamClicked);
     connect(btnBindParam, &QPushButton::clicked, this, &bookbindingwgt::onBindParamClicked);
-    // 新增：组帧按钮绑定
     connect(btnFrame, &QPushButton::clicked, this, &bookbindingwgt::onFrameClicked);
-    // 新增：清零按钮绑定（关键）
     connect(btnClear, &QPushButton::clicked, this, &bookbindingwgt::onClearClicked);
-    // 发送按钮绑定
     connect(btnSend, &QPushButton::clicked, this, &bookbindingwgt::onSendClicked);
+    connect(btnExport, &QPushButton::clicked, this, &bookbindingwgt::onExportClicked);
+    connect(btnImport, &QPushButton::clicked, this, &bookbindingwgt::onImportClicked);
 
 }
 
@@ -678,6 +674,54 @@ void bookbindingwgt::onClearClicked()
 
     // 清空存储的帧数据
     m_currentDat.clear();
+}
+
+// 导出装订参数到CSV文件
+void bookbindingwgt::onExportClicked()
+{
+    QString filePath = QFileDialog::getSaveFileName(this, "导出装订参数", "binding_params.csv", "CSV文件 (*.csv)");
+    if (filePath.isEmpty()) return;
+
+    QFile file(filePath);
+    if (!file.open(QIODevice::WriteOnly | QIODevice::Truncate)) return;
+
+    // 写入UTF-8 BOM防止Excel打开乱码
+    file.write("\xEF\xBB\xBF");
+    file.write(QString("参数名称,数值\n").toUtf8());
+    file.write(QString("火工品引爆时间(ms),%1\n").arg(leFireTime->text()).toUtf8());
+    file.write(QString("继电器关闭时间(ms),%1\n").arg(leRelayCloseTime->text()).toUtf8());
+    file.write(QString("电磁阀Y3-Y2延时(ms),%1\n").arg(leValveDelayTime->text()).toUtf8());
+    file.close();
+    QMessageBox::information(this, "导出成功", "装订参数已导出到\n" + filePath);
+}
+
+// 导入装订参数并从CSV文件设置界面
+void bookbindingwgt::onImportClicked()
+{
+    QString filePath = QFileDialog::getOpenFileName(this, "导入装订参数", "", "CSV文件 (*.csv);;所有文件 (*.*)");
+    if (filePath.isEmpty()) return;
+
+    QFile file(filePath);
+    if (!file.open(QIODevice::ReadOnly)) {
+        QMessageBox::warning(this, "导入失败", "无法打开文件：" + filePath);
+        return;
+    }
+
+    QTextStream in(&file);
+    QStringList lines = in.readAll().split('\n', Qt::SkipEmptyParts);
+    file.close();
+
+    // 解析CSV：第一行为表头，后续每行为 "名称,数值"
+    for (int i = 1; i < lines.size(); i++) {
+        QStringList cols = lines[i].split(',');
+        if (cols.size() < 2) continue;
+        QString name = cols[0].trimmed();
+        QString val  = cols[1].trimmed();
+        if (name.contains("火工品引爆时间")) leFireTime->setText(val);
+        else if (name.contains("继电器关闭时间")) leRelayCloseTime->setText(val);
+        else if (name.contains("电磁阀Y3-Y2延时")) leValveDelayTime->setText(val);
+    }
+    QMessageBox::information(this, "导入成功", "装订参数已从文件加载");
 }
 
 void bookbindingwgt::onSendClicked()

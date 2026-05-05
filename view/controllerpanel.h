@@ -5,6 +5,7 @@
 #include <QLineEdit>
 #include <QLabel>
 #include <QVector>
+#include "src/ControllerCSV/CsvController.h"
 // 引入自定义样式控件头文件
 #include "styledlineedit.h"
 #include "styledledlabel.h"
@@ -110,6 +111,15 @@ private:
 
     QMap<QString, StyledLedLabel*> m_ledMap;      // LED名称 -> LED控件映射
     QMap<QString, StyledLineEdit*> m_valueMap;
+
+    // CSV 存储
+    CsvController *m_csvController = nullptr;
+    QTimer        *m_csvTimer = nullptr;
+    QString        m_csvFilePath;
+    QStringList    m_csvHeader;
+    CsvData        m_csvPendingRows;
+    void initCsvStorage();
+    void flushCsv();
 };
 
 #endif // CONTROLLERPANEL_H

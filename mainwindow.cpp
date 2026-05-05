@@ -1,6 +1,8 @@
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
 #include "view/controllerpanel.h"
+#include "view/programpowersupply.h"
+#include "view/postanalysisdialog.h"
 #include "src/CommManager.h"
 #include <QHBoxLayout>
 #include <QMenu>
@@ -179,7 +181,7 @@ void MainWindow::initUi()
     btnLayout->setSpacing(12); // 增加按钮间距
 
     QStringList btnNames = {"控制器1", "控制器2", "控制器3", "模拟数据", "事后分析",
-                            "DA输出", "422指令", "422开启", "422设置", "程序电源",
+                            /*"DA输出",*/ "422指令", "422开启", "422设置", "程序电源",
                             "退出"};
 
     for (const QString &name : btnNames) {
@@ -221,9 +223,15 @@ void MainWindow::initUi()
         // 模拟数据按钮绑定
         else if(name == "模拟数据") {
             connect(btn, &QPushButton::clicked, this, [=]() {
-                // 创建并显示模拟数据窗口
                 simulateddata dialog(this);
                 dialog.exec();
+            });
+        }
+        // 事后分析按钮绑定
+        else if (name == "事后分析") {
+            connect(btn, &QPushButton::clicked, this, [=]() {
+                PostAnalysisDialog dlg(this);
+                dlg.exec();
             });
         }
         // 控制器1按钮绑定 - 复用唯一实例
@@ -244,6 +252,13 @@ void MainWindow::initUi()
         else if (name == "控制器3") {
             connect(btn, &QPushButton::clicked, this, [=]() {
                 m_emissionTab3->exec();
+            });
+        }
+        // 程序电源按钮绑定
+        else if (name == "程序电源") {
+            connect(btn, &QPushButton::clicked, this, [=]() {
+                ProgramPowerSupply dlg(this);
+                dlg.exec();
             });
         }
         // 退出按钮绑定
