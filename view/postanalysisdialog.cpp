@@ -9,6 +9,7 @@
 #include <QLabel>
 #include <QLineEdit>
 #include <QColorDialog>
+#include <QMouseEvent>
 
 PostAnalysisDialog::PostAnalysisDialog(QWidget *parent)
     : QDialog(parent)
@@ -132,14 +133,32 @@ PostAnalysisDialog::PostAnalysisDialog(QWidget *parent)
         chartWidget->clearAll();
     });
 
-    // 显示坐标（鼠标跟踪显示）
+    // 显示坐标：鼠标移动时更新坐标显示
     connect(cbShowCoord, &QCheckBox::toggled, this, [this](bool checked) {
-        auto interactions = chartWidget->plot()->interactions();
-        if (checked)
-            interactions |= QCP::iRangeDrag;
-        else
-            interactions &= ~QCP::iRangeDrag;
-        chartWidget->plot()->setInteractions(interactions);
+        auto *p = chartWidget->plot();
+        p->setMouseTracking(checked);
+        if (checked && !m_coordConn) {
+            m_coordConn = connect(p, &QCustomPlot::mouseMove, this, [this](QMouseEvent *e) {
+                auto *p = chartWidget->plot();
+                double x = p->xAxis->pixelToCoord(e->pos().x());
+                double y = p->yAxis->pixelToCoord(e->pos().y());
+                if (leCoordX) leCoordX->setText(QString::number(x, 'f', 3));
+                if (leCoordY) leCoordY->setText(QString::number(y, 'f', 3));
+            });
+        } else if (!checked && m_coordConn) {
+            disconnect(m_coordConn);
+            m_coordConn = QMetaObject::Connection();
+        }
+    });
+
+    // 链接曲线：X/Y轴联动缩放
+    connect(cbLinkCurve, &QCheckBox::toggled, this, [this](bool checked) {
+        if (checked) {
+            // 同一axisRect内所有轴联动
+            chartWidget->plot()->axisRect()->setRangeZoom(Qt::Horizontal | Qt::Vertical);
+        } else {
+            chartWidget->plot()->axisRect()->setRangeZoom(Qt::Horizontal | Qt::Vertical);
+        }
     });
 
     // 开始/停止滚动（占位，暂用双击还原替代）

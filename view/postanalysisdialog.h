@@ -59,6 +59,10 @@ private:
 
     // 核心图表控件
     ChartWidget *chartWidget;
+    QMetaObject::Connection m_coordConn;  // 坐标更新信号连接
+
+    // 显示坐标时需要更新的参数框
+    QLineEdit *leCoordX = nullptr, *leCoordY = nullptr;
 
     // 辅助函数：统一创建按钮（简化重复代码）
     QPushButton *createButton(const QString &text);
