@@ -6,6 +6,7 @@
 #include <QPushButton>
 #include <QLabel>
 #include <QLineEdit>
+#include <QComboBox>
 
 // 前置声明自定义图表控件
 class ChartWidget;
@@ -40,11 +41,11 @@ private:
     QPushButton *btnStopScroll;   // 停止滚动
 
     // 下方参数显示框
-    QLineEdit *leParam1;          // 显示参数1
-    QLineEdit *leParam2;          // 显示参数2
-    QLineEdit *leParam3;          // 显示参数3
-    QLineEdit *leParam4;          // 显示参数4
-    QLineEdit *leParam5;          // 显示参数5
+    QComboBox *cbParam1;          // 显示参数1
+    QComboBox *cbParam2;          // 显示参数2
+    QComboBox *cbParam3;          // 显示参数3
+    QComboBox *cbParam4;          // 显示参数4
+    QComboBox *cbParam5;          // 显示参数5
     QLineEdit *leCalcParam;       // 计算参数
     QLineEdit *leStartTimestamp;  // 起始时标
     QLineEdit *leStopTimestamp;   // 中止时标
@@ -63,6 +64,9 @@ private:
 
     // 显示坐标时需要更新的参数框
     QLineEdit *leCoordX = nullptr, *leCoordY = nullptr;
+
+    QStringList m_csvHeaders;          // 当前文件的CSV表头
+    void loadCsvHeaders(const QString &filePath); // 读取CSV表头填充下拉框
 
     // 辅助函数：统一创建按钮（简化重复代码）
     QPushButton *createButton(const QString &text);

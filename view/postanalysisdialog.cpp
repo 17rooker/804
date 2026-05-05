@@ -5,6 +5,7 @@
 #include <QHBoxLayout>
 #include <QGridLayout>
 #include <QCheckBox>
+#include <QComboBox>
 #include <QPushButton>
 #include <QLabel>
 #include <QLineEdit>
@@ -27,32 +28,43 @@ PostAnalysisDialog::PostAnalysisDialog(QWidget *parent)
     mainLayout->setSpacing(10);
     mainLayout->setContentsMargins(10, 10, 10, 10);
 
+    // --------------------- 顶部工具栏：文件选择 + 关闭 ---------------------
+    auto *toolBar = new QHBoxLayout();
+    auto *btnOpenFile = new QPushButton("打开文件");
+    btnOpenFile->setFixedSize(80, 28);
+    auto *m_editFilePath = new QLineEdit();
+    m_editFilePath->setReadOnly(true);
+    m_editFilePath->setPlaceholderText("请选择数据文件...");
+    connect(btnOpenFile, &QPushButton::clicked, this, [this, m_editFilePath]() {
+        QString fp = QFileDialog::getOpenFileName(this, "选择数据文件", "", "数据文件 (*.csv *.dat *.txt *.xls *.xlsx);;所有文件 (*.*)");
+        if (!fp.isEmpty()) { m_editFilePath->setText(fp); loadCsvHeaders(fp); }
+    });
+    auto *btnClose = new QPushButton("关闭");
+    btnClose->setFixedSize(60, 28);
+    connect(btnClose, &QPushButton::clicked, this, &QDialog::close);
+    toolBar->addWidget(btnOpenFile);
+    toolBar->addWidget(m_editFilePath, 1);
+    toolBar->addStretch();
+    toolBar->addWidget(btnClose);
+    mainLayout->addLayout(toolBar);
+
     // --------------------- 上半部分：图表 + 右侧按钮 ---------------------
     auto *topLayout = new QHBoxLayout();
     topLayout->setSpacing(10);
 
-    // 1. 图表控件（核心）
     chartWidget = new ChartWidget(this);
     chartWidget->setTitle("事后分析图");
     chartWidget->setAxisLabels("时间", "数值");
-    chartWidget->setMinimumSize(900, 400); // 匹配截图的图表尺寸
+    chartWidget->setMinimumSize(900, 400);
     topLayout->addWidget(chartWidget);
 
-    // 2. 右侧功能按钮面板
     auto *rightPanel = createRightPanel();
     topLayout->addWidget(rightPanel);
-
     mainLayout->addLayout(topLayout);
 
     // --------------------- 下半部分：参数显示面板 ---------------------
     auto *paramPanel = createParamPanel();
     mainLayout->addWidget(paramPanel);
-
-    // --------------------- 底部：关闭按钮 ---------------------
-    auto *btnClose = new QPushButton("关闭");
-    btnClose->setFixedSize(80, 30);
-    connect(btnClose, &QPushButton::clicked, this, &QDialog::close);
-    mainLayout->addWidget(btnClose, 0, Qt::AlignCenter);
 
     // ======================== 按钮功能绑定 ========================
     // 游标模式 / 平移模式
@@ -172,6 +184,27 @@ PostAnalysisDialog::PostAnalysisDialog(QWidget *parent)
 
 PostAnalysisDialog::~PostAnalysisDialog() = default;
 
+// 读取CSV表头并填充下拉框
+void PostAnalysisDialog::loadCsvHeaders(const QString &filePath)
+{
+    m_csvHeaders.clear();
+    QFile f(filePath);
+    if (!f.open(QIODevice::ReadOnly)) return;
+    QString firstLine = QString::fromUtf8(f.readLine()).trimmed();
+    f.close();
+
+    // 按逗号拆分表头
+    m_csvHeaders = firstLine.split(',');
+    // 填充5个下拉框
+    for (auto *cb : {cbParam1, cbParam2, cbParam3, cbParam4, cbParam5}) {
+        if (!cb) continue;
+        cb->clear();
+        cb->addItem("不显示");
+        for (const auto &h : m_csvHeaders)
+            cb->addItem(h.trimmed());
+    }
+}
+
 // 辅助函数：统一创建按钮（固定尺寸、统一样式）
 QPushButton *PostAnalysisDialog::createButton(const QString &text)
 {
@@ -273,49 +306,46 @@ QWidget *PostAnalysisDialog::createParamPanel()
     gridLayout->setSpacing(8);
     gridLayout->setContentsMargins(5, 5, 5, 5);
 
-    // 辅助lambda：快速创建“标签+只读输入框”组合
-    auto createParamItem = [&](const QString &labelText, int row, int col, QLineEdit *&le) {
-        // 标签（右对齐）
+    // 辅助lambda：创建（标签+下拉框）或（标签+只读输入框）
+    auto createParamItem = [&](const QString &labelText, int row, int col, QWidget *&w, bool isCombo) {
         auto *label = new QLabel(labelText, panel);
         label->setAlignment(Qt::AlignRight | Qt::AlignVCenter);
         gridLayout->addWidget(label, row, col);
-
-        // 输入框（只读、居中）
-        le = new QLineEdit(panel);
-        le->setFixedSize(100, 25);
-        le->setReadOnly(true);
-        le->setAlignment(Qt::AlignCenter);
-        gridLayout->addWidget(le, row, col + 1);
+        if (isCombo) {
+            auto *cb = new QComboBox(panel);
+            cb->setFixedSize(100, 25);
+            cb->addItem(“不显示”);
+            w = cb;
+        } else {
+            auto *le = new QLineEdit(panel);
+            le->setFixedSize(100, 25);
+            le->setReadOnly(true);
+            le->setAlignment(Qt::AlignCenter);
+            w = le;
+        }
+        gridLayout->addWidget(w, row, col + 1);
     };
+    QWidget *pw;
+    createParamItem(“显示参数1”, 0, 0, pw = cbParam1, true); cbParam1 = qobject_cast<QComboBox*>(pw);
+    createParamItem(“显示参数3”, 0, 2, pw = cbParam3, true); cbParam3 = qobject_cast<QComboBox*>(pw);
+    createParamItem(“显示参数5”, 0, 4, pw = cbParam5, true); cbParam5 = qobject_cast<QComboBox*>(pw);
+    createParamItem(“起始时标”, 0, 6, pw = leStartTimestamp, false); leStartTimestamp = qobject_cast<QLineEdit*>(pw);
+    createParamItem(“最大值时标”, 0, 8, pw = leMaxTimestamp, false); leMaxTimestamp = qobject_cast<QLineEdit*>(pw);
+    createParamItem(“最小值时标”, 0, 10, pw = leMinTimestamp, false); leMinTimestamp = qobject_cast<QLineEdit*>(pw);
+    createParamItem(“区域平均值”, 0, 12, pw = leAreaAvg, false); leAreaAvg = qobject_cast<QLineEdit*>(pw);
+    createParamItem(“滚动速度”, 0, 14, pw = leScrollSpeed, false); leScrollSpeed = qobject_cast<QLineEdit*>(pw);
 
-    // 第一行参数
-    createParamItem("显示参数1", 0, 0, leParam1);
-    createParamItem("显示参数3", 0, 2, leParam3);
-    createParamItem("显示参数5", 0, 4, leParam5);
-    createParamItem("起始时标", 0, 6, leStartTimestamp);
-    createParamItem("最大值时标", 0, 8, leMaxTimestamp);
-    createParamItem("最小值时标", 0, 10, leMinTimestamp);
-    createParamItem("区域平均值", 0, 12, leAreaAvg);
-    createParamItem("滚动速度", 0, 14, leScrollSpeed);
+    createParamItem(“显示参数2”, 1, 0, pw = cbParam2, true); cbParam2 = qobject_cast<QComboBox*>(pw);
+    createParamItem(“显示参数4”, 1, 2, pw = cbParam4, true); cbParam4 = qobject_cast<QComboBox*>(pw);
+    createParamItem(“计算参数”, 1, 4, pw = leCalcParam, false); leCalcParam = qobject_cast<QLineEdit*>(pw);
+    createParamItem(“中止时标”, 1, 6, pw = leStopTimestamp, false); leStopTimestamp = qobject_cast<QLineEdit*>(pw);
+    createParamItem(“区域最大值”, 1, 8, pw = leAreaMax, false); leAreaMax = qobject_cast<QLineEdit*>(pw);
+    createParamItem(“区域最小值”, 1, 10, pw = leAreaMin, false); leAreaMin = qobject_cast<QLineEdit*>(pw);
+    createParamItem(“区域均方值”, 1, 12, pw = leAreaRms, false); leAreaRms = qobject_cast<QLineEdit*>(pw);
+    createParamItem(“数据对应时标”, 1, 14, pw = leDataTimestamp, false); leDataTimestamp = qobject_cast<QLineEdit*>(pw);
 
-    // 第二行参数
-    createParamItem("显示参数2", 1, 0, leParam2);
-    createParamItem("显示参数4", 1, 2, leParam4);
-    createParamItem("计算参数", 1, 4, leCalcParam);
-    createParamItem("中止时标", 1, 6, leStopTimestamp);
-    createParamItem("区域最大值", 1, 8, leAreaMax);
-    createParamItem("区域最小值", 1, 10, leAreaMin);
-    createParamItem("区域均方值", 1, 12, leAreaRms);
-    createParamItem("数据对应时标", 1, 14, leDataTimestamp);
-
-    // 初始化参数值（匹配截图）
-    leParam1->setText("不显示");
-    leParam2->setText("不显示");
-    leParam3->setText("不显示");
-    leParam4->setText("不显示");
-    leParam5->setText("不显示");
-    leCalcParam->setText("不显示");
-    leStartTimestamp->setText("0");
+    // 初始化值
+    leStartTimestamp->setText(“0”);
     leStopTimestamp->setText("0");
     leMaxTimestamp->setText("-1");
     leMinTimestamp->setText("-1");
