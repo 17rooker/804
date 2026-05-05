@@ -7,6 +7,9 @@
 #include <QLabel>
 #include <QLineEdit>
 #include <QComboBox>
+#include <QMap>
+#include <QVector>
+#include "src/Common/StructDefine.h"
 
 // 前置声明自定义图表控件
 class ChartWidget;
@@ -65,8 +68,11 @@ private:
     // 显示坐标时需要更新的参数框
     QLineEdit *leCoordX = nullptr, *leCoordY = nullptr;
 
-    QStringList m_csvHeaders;          // 当前文件的CSV表头
-    void loadCsvHeaders(const QString &filePath); // 读取CSV表头填充下拉框
+    QStringList m_csvHeaders;
+    STParamInfo m_frameParam;
+    QMap<QString, QVector<double>> m_plotData;  // field/column name → time-series values
+    void loadCsvHeaders(const QString &filePath);
+    void plotSelectedParams();
 
     // 辅助函数：统一创建按钮（简化重复代码）
     QPushButton *createButton(const QString &text);
