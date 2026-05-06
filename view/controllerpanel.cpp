@@ -226,6 +226,8 @@ void FrameWorker::processData_sel( STParamInfo &param)
 
 void FrameWorker::paramProcess(STParamInfo &m_param, QMap<QString, bool> &m_ledStates,  QMap<QString, QString> &m_editValues)
 {
+    // 首次调用时启动计时器
+    if (!m_workerTimer.isValid()) m_workerTimer.start();
     for (auto mapIt = m_param.mapParams.cbegin(); mapIt != m_param.mapParams.cend(); ++mapIt)
     {
         const STParamItem& item = mapIt.value();
@@ -471,7 +473,6 @@ void FrameWorker::paramProcess(STParamInfo &m_param, QMap<QString, bool> &m_ledS
             m_ledStates["机构1-控制电缆连接情况"] = xf01a1Status1;
             m_ledStates["机构1供气"] = dcf1Y3_State;
             m_ledStates["机构1锁定"] = dcf1Y2_State;
-            m_ledStates["机构1-锁定到位"] = dcf1Y2_State;
             m_ledStates["机构1释放备"] = dcf1Y1_2_State;
             m_ledStates["机构1释放主"] = dcf1Y1_1_State;
         }
@@ -502,7 +503,6 @@ void FrameWorker::paramProcess(STParamInfo &m_param, QMap<QString, bool> &m_ledS
             m_ledStates["机构2-控制电缆连接情况"] = xf01a1Status2;
             m_ledStates["机构2供气"] = dcf2Y3_State;
             m_ledStates["机构2锁定"] = dcf2Y2_State;
-            m_ledStates["机构2-锁定到位"] = dcf2Y2_State;
             m_ledStates["机构2释放备"] = dcf2Y1_2_State;
             m_ledStates["机构2释放主"] = dcf2Y1_1_State;
         }
@@ -532,7 +532,6 @@ void FrameWorker::paramProcess(STParamInfo &m_param, QMap<QString, bool> &m_ledS
             m_ledStates["机构3-控制电缆连接情况"] = xf01a2Status1;
             m_ledStates["机构3供气"] = dcf3Y3_State;
             m_ledStates["机构3锁定"] = dcf3Y2_State;
-            m_ledStates["机构3-锁定到位"] = dcf3Y2_State;
             m_ledStates["机构3释放备"] = dcf3Y1_2_State;
             m_ledStates["机构3释放主"] = dcf3Y1_1_State;
         }
@@ -562,7 +561,6 @@ void FrameWorker::paramProcess(STParamInfo &m_param, QMap<QString, bool> &m_ledS
             m_ledStates["机构4-控制电缆连接情况"] = xf01a2Status2;
             m_ledStates["机构4供气"] = dcf4Y3_State;
             m_ledStates["机构4锁定"] = dcf4Y2_State;
-            m_ledStates["机构4-锁定到位"] = dcf4Y2_State;
             m_ledStates["机构4释放备"] = dcf4Y1_2_State;
             m_ledStates["机构4释放主"] = dcf4Y1_1_State;
         }
@@ -765,11 +763,7 @@ void FrameWorker::paramProcess(STParamInfo &m_param, QMap<QString, bool> &m_ledS
             bool sfh1_7_2_1 = (rawValue >> 1) & 0x01;           // B1：SFH1_7.2_1（高有效）
             bool sfh1_7_1_1 = rawValue & 0x01;                  // B0：SFH1_7.1_1（高有效）
 
-            // 状态存入m_ledStates
-            m_ledStates["机构2-释放好"] = mechanism2ReleaseOk;
-            m_ledStates["机构1-释放好"] = mechanism1ReleaseOk;
-            m_ledStates["机构1-释放到位"] = mechanism1ReleaseOk;
-            m_ledStates["机构2-释放到位"] = mechanism2ReleaseOk;
+            // 状态存入m_ledStates（释放好/释放到位由SQ计算，不在A5解析）
             m_ledStates["SFH2_7.3"] = sfh1_7_3_2;
             m_ledStates["SFH2_7.2"] = sfh1_7_2_2;
             m_ledStates["SFH2_7.1"] = sfh1_7_1_2;
@@ -794,11 +788,7 @@ void FrameWorker::paramProcess(STParamInfo &m_param, QMap<QString, bool> &m_ledS
             bool sfh1_7_2_3 = (rawValue >> 1) & 0x01;           // B1：SFH1_7.2_3（高有效）
             bool sfh1_7_1_3 = rawValue & 0x01;                  // B0：SFH1_7.1_3（高有效）
 
-            // 状态存入m_ledStates
-            m_ledStates["机构4-释放好"] = mechanism4ReleaseOk;
-            m_ledStates["机构3-释放好"] = mechanism3ReleaseOk;
-            m_ledStates["机构3-释放到位"] = mechanism3ReleaseOk;
-            m_ledStates["机构4-释放到位"] = mechanism4ReleaseOk;
+            // 状态存入m_ledStates（释放好/释放到位由SQ计算，不在A5解析）
             m_ledStates["SFH4_7.3"] = sfh1_7_3_4;
             m_ledStates["SFH4_7.2"] = sfh1_7_2_4;
             m_ledStates["SFH4_7.1"] = sfh1_7_1_4;
@@ -1455,6 +1445,118 @@ void FrameWorker::paramProcess(STParamInfo &m_param, QMap<QString, bool> &m_ledS
     }
     //    updateControllerFrameUI(m_ledStates,m_editValues/*,m_ledStates,m_editValues*/);
 
+    // ==================== 第三列指示灯SQ综合计算 ====================
+    // 收集各机构SQ状态并按用户规范计算LED
+    for (int i = 1; i <= 4; i++) {
+        bool sq1_1 = m_ledStates.value(QString("SQ1.1-1%1").arg(i), false);
+        bool sq1_2 = m_ledStates.value(QString("SQ1.2-1%1").arg(i), false);
+        bool sq2_1 = m_ledStates.value(QString("SQ2.1-1%1").arg(i), false);
+        bool sq2_2 = m_ledStates.value(QString("SQ2.2-1%1").arg(i), false);
+        bool sq3_1 = m_ledStates.value(QString("SQ3.1-1%1").arg(i), false);
+        bool sq3_2 = m_ledStates.value(QString("SQ3.2-1%1").arg(i), false);
+        bool sq5_1 = m_ledStates.value(QString("SQ5.1-1%1").arg(i), false);
+        bool sq5_2 = m_ledStates.value(QString("SQ5.2-1%1").arg(i), false);
+        bool sq6_1 = m_ledStates.value(QString("SQ6.1-1%1").arg(i), false);
+        bool sq6_2 = m_ledStates.value(QString("SQ6.2-1%1").arg(i), false);
+
+        // SQ7 (命名不统一需特殊处理)
+        bool sq7_1, sq7_2, sq7_3;
+        if (i == 1) {
+            sq7_1 = m_ledStates.value("SFH1_7.1_1", false);
+            sq7_2 = m_ledStates.value("SFH1_7.2_1", false);
+            sq7_3 = m_ledStates.value("SFH1_7.3_1", false);
+        } else {
+            sq7_1 = m_ledStates.value(QString("SFH%1_7.1").arg(i), false);
+            sq7_2 = m_ledStates.value(QString("SFH%1_7.2").arg(i), false);
+            sq7_3 = m_ledStates.value(QString("SFH%1_7.3").arg(i), false);
+        }
+
+        // Y1.1/Y1.2气动解锁信号
+        bool y1_1 = m_ledStates.value(QString("机构%1释放主").arg(i), false);
+        bool y1_2 = m_ledStates.value(QString("机构%1释放备").arg(i), false);
+        bool y1_active = y1_1 || y1_2;
+
+        // 1. 锁定到位 = SQ2.1/SQ2.2触发 AND SQ3.1/SQ3.2触发
+        bool locked = (sq2_1 || sq2_2) && (sq3_1 || sq3_2);
+        m_ledStates[QString("机构%1-锁定到位").arg(i)] = locked;
+
+        // 2. 复位到位(牵制臂复位到位) = 锁定到位 AND SQ6.1/SQ6.2触发
+        if (locked && (sq6_1 || sq6_2)) {
+            m_ledStates[QString("机构%1-牵制臂复位到位").arg(i)] = true;
+        }
+
+        // 3. 快速分离解锁到位 = SQ1.1/SQ1.2触发 AND SQ3.1/SQ3.2下降沿
+        bool sq1Active = sq1_1 || sq1_2;
+        bool sq3_1_falling = m_prevSQ3_1.value(i, false) && !sq3_1;
+        bool sq3_2_falling = m_prevSQ3_2.value(i, false) && !sq3_2;
+        if (sq1Active && (sq3_1_falling || sq3_2_falling)) {
+            m_ledStates[QString("机构%1-快速分离解锁到位").arg(i)] = true;
+        }
+        m_prevSQ3_1[i] = sq3_1;
+        m_prevSQ3_2[i] = sq3_2;
+        bool unlockDone = m_ledStates.value(QString("机构%1-快速分离解锁到位").arg(i), false);
+
+        // 4. 释放到位 = 解锁到位信号 AND SQ5.1/SQ5.2触发
+        //    （爆炸螺栓分支暂缺）
+        bool releaseInPlace = unlockDone && (sq5_1 || sq5_2);
+        if (releaseInPlace) {
+            m_ledStates[QString("机构%1-释放到位").arg(i)] = true;
+        }
+
+        // 5. 释放好 = SQ7.1/SQ7.2/SQ7.3上升沿
+        bool sq7_combined = sq7_1 || sq7_2 || sq7_3;
+        bool prevSq7 = m_prevSQ7Combined.value(i, false);
+        if (!prevSq7 && sq7_combined) {
+            m_ledStates[QString("机构%1-释放好").arg(i)] = true;
+        }
+        m_prevSQ7Combined[i] = sq7_combined;
+
+        // ==================== 第二列计时计算 ====================
+        // Y1.1/Y1.2上升沿 → 开始计时（气动解锁信号发出）
+        bool prevY1 = m_prevY1Active.value(i, false);
+        if (!prevY1 && y1_active && !m_pneuTimingStarted.value(i, false)) {
+            m_pneuTimingStarted[i] = true;
+            m_pneuStartUs[i] = m_workerTimer.elapsed();
+        }
+        m_prevY1Active[i] = y1_active;
+
+        if (m_pneuTimingStarted.value(i, false)) {
+            qint64 elapsedUs = m_workerTimer.elapsed() - m_pneuStartUs.value(i, 0);
+            double elapsedSec = elapsedUs / 1000000.0;
+
+            // 解锁到位时间：Y1发出 → 解锁到位信号给出
+            if (!m_unlockTimeDone.value(i, false) && unlockDone) {
+                m_unlockTimeDone[i] = true;
+                m_editValues[QString("机构%1-解锁到位时间(s)").arg(i)] = QString::number(elapsedSec, 'f', 4);
+            }
+
+            // 释放好时间：Y1发出 → 释放好信号给出
+            bool releaseOk = m_ledStates.value(QString("机构%1-释放好").arg(i), false);
+            if (!m_releaseOkTimeDone.value(i, false) && releaseOk) {
+                m_releaseOkTimeDone[i] = true;
+                m_editValues[QString("机构%1-释放好时间(s)").arg(i)] = QString::number(elapsedSec, 'f', 4);
+            }
+
+            // 释放到位时间（气动）：Y1发出 → 解锁到位 AND SQ5触发
+            if (!m_releaseInPlacePneuDone.value(i, false) && releaseInPlace) {
+                m_releaseInPlacePneuDone[i] = true;
+                m_editValues[QString("机构%1-释放到位时间(s)").arg(i)] = QString::number(elapsedSec, 'f', 4);
+            }
+        }
+    }
+
+    // 全局指示灯（跨机构）
+    bool holdReleaseReady = m_ledStates.value("牵制释放好", false);
+    bool allReleaseOk = true, allReleaseInPlace = true;
+    for (int i = 1; i <= 4; i++) {
+        if (!m_ledStates.value(QString("机构%1-释放好").arg(i), false)) allReleaseOk = false;
+        if (!m_ledStates.value(QString("机构%1-释放到位").arg(i), false)) allReleaseInPlace = false;
+    }
+    // 6. 释放完成（四机）= 牵制释放"允许释放"指令收到 AND 四机构释放好均发出
+    m_ledStates["释放好4机构"] = holdReleaseReady && allReleaseOk;
+    // 7. 释放到位（四机）= 四机构释放到位均发出
+    m_ledStates["释放到位4机构"] = allReleaseInPlace;
+
 }
 
 void FrameWorker::paramProcess_A6(STParamInfo &m_param, QMap<QString, bool> &m_ledStates, QMap<QString, QString> &m_editValues)
@@ -1993,7 +2095,8 @@ void ControllerPanel::onDataProcessed(const QMap<QString, bool> &ledStates, cons
             "机构1-释放到位","机构2-释放到位","机构3-释放到位","机构4-释放到位",
             "机构1-牵制臂复位到位","机构2-牵制臂复位到位","机构3-牵制臂复位到位","机构4-牵制臂复位到位",
             "机构1-锁定到位","机构2-锁定到位","机构3-锁定到位","机构4-锁定到位",
-            "机构1-释放好","机构2-释放好","机构3-释放好","机构4-释放好"};
+            "机构1-释放好","机构2-释放好","机构3-释放好","机构4-释放好",
+            "释放好4机构","释放到位4机构"};
         for (auto &k : statusLEDs) row << (ledStates.value(k, false) ? "1" : "0");
         // 报警LED
         QString alarmLEDs[] = {"机构1-牵制拉力异常","机构2-牵制拉力异常","机构3-牵制拉力异常","机构4-牵制拉力异常",
@@ -2041,6 +2144,7 @@ void ControllerPanel::initCsvStorage()
     QStringList statusNames = {"快速分离解锁到位","释放到位","牵制臂复位到位","锁定到位","释放好"};
     for (auto &sn : statusNames)
         for (int i = 1; i <= 4; i++) m_csvHeader << QString("机构%1-%2").arg(i).arg(sn);
+    m_csvHeader << "释放好4机构" << "释放到位4机构";
     QStringList alarmNames = {"牵制拉力异常","储气罐压力异常","控制电缆连接情况"};
     for (auto &an : alarmNames)
         for (int i = 1; i <= 4; i++) m_csvHeader << QString("机构%1-%2").arg(i).arg(an);
@@ -2237,6 +2341,7 @@ void ControllerPanel::setupUI()
     // 释放好
     for(int i=1; i<=4; i++) ADD_STATUS_ROW(col3, m_rowsCol3, QString("机构%1-释放好").arg(i));
     ADD_STATUS_ROW(col3, m_rowsCol3, "释放好4机构");
+    ADD_STATUS_ROW(col3, m_rowsCol3, "释放到位4机构");
 
     col3->addStretch();
 

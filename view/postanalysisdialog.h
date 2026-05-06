@@ -9,6 +9,7 @@
 #include <QComboBox>
 #include <QMap>
 #include <QVector>
+#include <QThread>
 #include "src/Common/StructDefine.h"
 
 // 前置声明自定义图表控件
@@ -71,6 +72,7 @@ private:
     QStringList m_csvHeaders;
     STParamInfo m_frameParam;
     QMap<QString, QVector<double>> m_plotData;  // field/column name → time-series values
+    QThread *m_loadThread = nullptr;             // 文件加载后台线程
     void loadCsvHeaders(const QString &filePath);
     void plotSelectedParams();
 

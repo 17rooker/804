@@ -10,6 +10,7 @@
 #include <QFrame>
 #include <QStandardItemModel>
 #include <QDebug>
+#include <QTimer>
 #include "src/CustomMessage/DataInteractionManager.h"
 
 // ================= CRC16 校验表定义 =================
@@ -486,4 +487,58 @@ void Controller422Dialog::onSendClicked()
     msg.eDataType   = EDataType::E_Unknown;
     msg.btData      = m_currentDat;
     DataInteractionManager::getInstance().sendMsg(msg);
+}
+
+void Controller422Dialog::startAutoSequence(const QString &channelId)
+{
+    // 命令序列：{命令码, 操作码}
+    struct SeqStep { quint16 cmd; quint8 op; };
+    SeqStep steps[] = {
+        {0xEEAA, 0xAA},  // 开锁 + 接通
+        {0xCCAA, 0xAA},  // 火工品解控 + 接通
+        {0xCCCC, 0xAA},  // 火工品解保 + 接通
+        {0xCCAA, 0x55},  // 火工品解控 + 断开 (=非解控)
+        {0xEEAA, 0x55},  // 开锁 + 断开 (=关锁)
+    };
+
+    auto *timer = new QTimer(this);
+    auto *stepIndex = new int(0);
+
+    connect(timer, &QTimer::timeout, this, [this, timer, stepIndex, steps, channelId]() {
+        if (*stepIndex >= 5) {
+            timer->stop();
+            timer->deleteLater();
+            delete stepIndex;
+            return;
+        }
+        const auto &s = steps[*stepIndex];
+
+        // 构造帧（复用onFrameClicked的组帧逻辑）
+        QByteArray frame;
+        quint32 header = 0xFDB18540;
+        frame.append((char)(header >> 24)); frame.append((char)(header >> 16));
+        frame.append((char)(header >> 8));  frame.append((char)(header));
+        quint32 length = 17;
+        frame.append((char)(length >> 24)); frame.append((char)(length >> 16));
+        frame.append((char)(length >> 8));  frame.append((char)(length));
+        frame.append((char)(s.cmd >> 8));   frame.append((char)(s.cmd));
+        frame.append((char)(s.op));
+        QByteArray crcData = frame.mid(4, 7);
+        quint16 crc = calculateCRC16(crcData);
+        frame.append((char)(crc >> 8));     frame.append((char)(crc));
+        quint32 footer = 0xEB90146F;
+        frame.append((char)(footer >> 24)); frame.append((char)(footer >> 16));
+        frame.append((char)(footer >> 8));  frame.append((char)(footer));
+
+        STDataPrcSendMsg msg;
+        msg.channelId = channelId;
+        msg.channelType = EChannelType::Serial;
+        msg.eDataType = EDataType::E_Unknown;
+        msg.btData = frame;
+        DataInteractionManager::getInstance().sendMsg(msg);
+
+        (*stepIndex)++;
+    });
+
+    timer->start(1000);
 }

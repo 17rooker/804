@@ -347,6 +347,9 @@ void MainWindow::initUi()
                 if (m_logText) m_logText->append(QString("[%1] 与测发控断开连接").arg(timeStr));
             }
             prevState = state;
+
+            m_cecConnected = (state == EChannelState::Connected);
+            if (!m_cecConnected) m_autoSequenceTriggered = false;
         });
 
     // 机构准备好状态（来自控制器面板传感器判断）
@@ -356,6 +359,8 @@ void MainWindow::initUi()
                 ready
                 ? "border-radius: 6px; background-color: #00FF00; border: 1px solid white;"
                 : "border-radius: 6px; background-color: #888888; border: 1px solid white;");
+            m_mechanismReady = ready;
+            if (!ready) m_autoSequenceTriggered = false;
         });
 
     // 运控记录支持右键清除
@@ -368,5 +373,30 @@ void MainWindow::initUi()
             });
             menu.exec(m_logText->mapToGlobal(pos));
         });
+    }
+
+    // 订阅实时数据（用于检测TCP远控数据到达，触发自动422序列）
+    DataInteractionManager::getInstance().getMsgHandle()
+        ->subMessage(this, ESubDataType::E_RealTimeData);
+}
+
+void MainWindow::onMessage(IEvent *pEvent)
+{
+    if (!pEvent || pEvent->getType() != EventType::E_InitiativeMsg) return;
+
+    auto *initEvent = static_cast<InitiativeMsgEvent*>(pEvent);
+    const STParamInfo &param = initEvent->getParamData();
+
+    // 只处理TCP远控通道的数据
+    if (param.channelId != "tcp_device_serverRemote") return;
+
+    // 条件全部满足且尚未触发过
+    if (m_cecConnected && m_mechanismReady && !m_autoSequenceTriggered) {
+        m_autoSequenceTriggered = true;
+        if (m_logText) m_logText->append(
+            QStringLiteral("[%1] 条件满足，自动发送422指令序列")
+            .arg(QDateTime::currentDateTime().toString("yyyy-MM-dd hh:mm:ss")));
+        // 在串口E上发送指令序列（三个控制器共用serial_E）
+        m_controller422Dialog->startAutoSequence("serial_E");
     }
 }

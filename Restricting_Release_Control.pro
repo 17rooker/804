@@ -74,6 +74,7 @@ SOURCES += \
     view/styledledlabel.cpp \
     view/postanalysisdialog.cpp \
     view/styledlineedit.cpp \
+    view/fileloadworker.cpp \
     view/wavechart.cpp
 
 HEADERS += \
@@ -128,6 +129,7 @@ HEADERS += \
     view/powersettingwidge.h \
     view/programpowersupply.h \
     view/postanalysisdialog.h \
+    view/fileloadworker.h \
     view/remotesettingwidget.h \
     view/serial422dialog.h \
     view/simulateddata.h \

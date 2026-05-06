@@ -5,6 +5,7 @@
 #include <QLineEdit>
 #include <QLabel>
 #include <QVector>
+#include <QElapsedTimer>
 #include "src/ControllerCSV/CsvController.h"
 // 引入自定义样式控件头文件
 #include "styledlineedit.h"
@@ -48,6 +49,21 @@ private:
     bool isParamOutOfRange(double paramValue, ParamType type);
     void paramProcess(STParamInfo &m_param, QMap<QString, bool> &m_ledStates,  QMap<QString, QString> &m_editValues);
     void paramProcess_A6(STParamInfo &m_param, QMap<QString, bool> &m_ledStates,  QMap<QString, QString> &m_editValues);
+
+    // SQ接近开关历史状态（用于边缘检测）
+    QMap<int, bool> m_prevSQ3_1;
+    QMap<int, bool> m_prevSQ3_2;
+    QMap<int, bool> m_prevSQ7Combined;   // SQ7上升沿检测
+    QMap<int, bool> m_prevY1Active;      // Y1.1/Y1.2上升沿检测（气动解锁信号）
+
+    // 气动解锁计时相关
+    QMap<int, bool> m_pneuTimingStarted;
+    QMap<int, qint64> m_pneuStartUs;     // 起始时刻(μs)
+    QMap<int, bool> m_unlockTimeDone;
+    QMap<int, bool> m_releaseOkTimeDone;
+    QMap<int, bool> m_releaseInPlacePneuDone;
+
+    QElapsedTimer m_workerTimer;         // 工作线程计时器
 };
 
 class ControllerPanel : public QWidget,public IMessage

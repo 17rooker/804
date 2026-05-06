@@ -17,7 +17,11 @@
 #include <QMouseEvent>
 #include <QProcess>
 #include <numeric>
+#include <QProgressDialog>
+#include <QApplication>
 #include <QDebug>
+
+#include "fileloadworker.h"
 
 PostAnalysisDialog::PostAnalysisDialog(QWidget *parent)
     : QDialog(parent)
@@ -26,10 +30,10 @@ PostAnalysisDialog::PostAnalysisDialog(QWidget *parent)
     setWindowTitle("事后分析");
     resize(1200, 700); // 适配截图的宽高比例
     setStyleSheet("QDialog { background-color: #C8C8F0; }"  // 匹配截图的淡紫色背景
-                  "QPushButton { font-size: 11px; }"
-                  "QLabel { font-size: 11px; }"
-                  "QLineEdit { font-size: 11px; }"
-                  "QComboBox { font-size: 10px; }");
+                  "QPushButton { font-size: 12px; }"
+                  "QLabel { font-size: 12px; }"
+                  "QLineEdit { font-size: 12px; }"
+                  "QComboBox { font-size: 13px; }");
 
     // 主布局：垂直布局（整体）
     auto *mainLayout = new QVBoxLayout(this);
@@ -195,162 +199,74 @@ PostAnalysisDialog::PostAnalysisDialog(QWidget *parent)
     });
 }
 
-PostAnalysisDialog::~PostAnalysisDialog() = default;
+PostAnalysisDialog::~PostAnalysisDialog()
+{
+    if (m_loadThread && m_loadThread->isRunning()) {
+        m_loadThread->requestInterruption();
+        m_loadThread->quit();
+        m_loadThread->wait(3000);
+    }
+}
 
-// 读取文件数据并填充下拉框
+// 后台线程加载文件（显示进度条，不阻塞UI）
 void PostAnalysisDialog::loadCsvHeaders(const QString &filePath)
 {
+    // 如有上次加载未完成，先清理
+    if (m_loadThread && m_loadThread->isRunning()) {
+        m_loadThread->requestInterruption();
+        m_loadThread->quit();
+        m_loadThread->wait(3000);
+    }
+    delete m_loadThread;
+
     m_csvHeaders.clear();
     m_plotData.clear();
 
-    // XLSX：仅Python解析首行表头（无数据行支持）
-    if (filePath.endsWith(".xlsx", Qt::CaseInsensitive)) {
-        QProcess py;
-        QString script = QStringLiteral(
-            "import sys,zipfile,xml.etree.ElementTree as ET\n"
-            "f=sys.argv[1]\n"
-            "ns={'s':'http://schemas.openxmlformats.org/spreadsheetml/2006/main'}\n"
-            "with zipfile.ZipFile(f) as z:\n"
-            "  si=[]\n"
-            "  if 'xl/sharedStrings.xml' in z.namelist():\n"
-            "    t=ET.parse(z.open('xl/sharedStrings.xml'))\n"
-            "    for n in t.getroot().findall('.//s:t',ns): si.append(n.text or '')\n"
-            "  t=ET.parse(z.open('xl/worksheets/sheet1.xml'))\n"
-            "  r=t.getroot().find('.//s:sheetData/s:row',ns)\n"
-            "  if r is not None:\n"
-            "    o=[]\n"
-            "    for c in r.findall('s:c',ns):\n"
-            "      v=c.find('s:v',ns)\n"
-            "      if v is not None and v.text:\n"
-            "        val=v.text\n"
-            "        if c.get('t')=='s' and val.isdigit() and int(val)<len(si): val=si[int(val)]\n"
-            "        o.append(val)\n"
-            "    sys.stdout.write(','.join(o))");
-        py.start("python3", {"-c", script, filePath});
-        py.waitForFinished();
-        QString out = QString::fromUtf8(py.readAllStandardOutput()).trimmed();
-        qDebug() << "XLSX parse out:" << out;
-        if (!py.exitCode() && !out.isEmpty()) m_csvHeaders = out.split(',');
-        else { qDebug() << "XLSX parse failed, stderr:" << py.readAllStandardError(); return; }
-    }
-    // 二进制协议文件（A5/A6）：解析所有帧构建时序数据
-    else if (filePath.endsWith(".xls", Qt::CaseInsensitive) || filePath.endsWith(".dat", Qt::CaseInsensitive)) {
-        QFile f(filePath);
-        if (!f.open(QIODevice::ReadOnly)) return;
-        QByteArray raw = f.readAll();
-        f.close();
+    auto *worker = new FileLoadWorker();
+    auto *thread = new QThread(this);
+    worker->moveToThread(thread);
+    m_loadThread = thread;
 
-        // 构建 csvField → field.id 映射（从A5/A6两种格式）
-        QMap<QString, QString> csvFieldToId;
-        QMap<QString, int> csvFieldOrder;
-        int order = 0;
-        STFrameFormat fmt;
-        auto collectFields = [&](int frameLen) {
-            if (MessageFrameConfig::getInstance().findFrameFormat("serial_E", frameLen, fmt)) {
-                for (const auto *fv : {&fmt.frameHeader, &fmt.frameBody, &fmt.frameTail})
-                    for (const auto &field : *fv) {
-                        QString csvName = field.csvField.isEmpty() ? field.id : field.csvField;
-                        if (!csvFieldToId.contains(csvName)) {
-                            csvFieldToId[csvName] = field.id;
-                            csvFieldOrder[csvName] = order++;
-                        }
-                    }
-            }
-        };
-        collectFields(428);
-        collectFields(97);
-        if (csvFieldToId.isEmpty()) return;
+    auto *progress = new QProgressDialog("正在加载文件...", "取消", 0, 100, this);
+    progress->setWindowTitle("加载中");
+    progress->setWindowModality(Qt::WindowModal);
+    progress->setMinimumDuration(500); // 超过500ms才显示
 
-        // 按字段显示顺序排序输出表头
-        QMap<int, QString> orderedHeaders;
-        for (auto it = csvFieldToId.cbegin(); it != csvFieldToId.cend(); ++it)
-            orderedHeaders[csvFieldOrder[it.key()]] = it.key();
-        m_csvHeaders.clear();
-        for (auto it = orderedHeaders.cbegin(); it != orderedHeaders.cend(); ++it)
-            m_csvHeaders.append(it.value());
+    connect(worker, &FileLoadWorker::progressChanged, this, [progress](int pct, const QString &status) {
+        progress->setValue(pct);
+        progress->setLabelText(status);
+    });
 
-        // 解析所有帧，逐帧提取时序数据
-        FrameDataAnalysis analy;
-        for (int pos = 0; pos + 8 < raw.size(); pos++) {
-            if (raw[pos] != char(0xFD) || raw[pos+1] != char(0xB1) || raw[pos+2] != char(0x85) || raw[pos+3] != char(0x40))
-                continue;
-            int frameLen = (quint8(raw[pos+4])<<24)|(quint8(raw[pos+5])<<16)|(quint8(raw[pos+6])<<8)|quint8(raw[pos+7]);
-            if ((frameLen != 428 && frameLen != 97) || pos + frameLen > raw.size()) continue;
+    connect(worker, &FileLoadWorker::finished, this, [this, thread, worker, progress]() {
+        m_csvHeaders = worker->m_headers;
+        m_plotData = worker->m_plotData;
 
-            QByteArray frameData = raw.mid(pos, frameLen);
-            STPackage p;
-            p.channelId = "serial_E"; p.channelType = EChannelType::Serial; p.baDataRecv = frameData;
-
-            STParamInfo paramInfo;
-            analy.parseData(p, paramInfo);
-
-            for (auto it = csvFieldToId.cbegin(); it != csvFieldToId.cend(); ++it) {
-                if (paramInfo.mapParams.contains(it.value())) {
-                    double val = paramInfo.mapParams[it.value()].varParaValue.toDouble();
-                    m_plotData[it.key()].append(val);
-                }
-            }
+        // 填充下拉框
+        for (auto *cb : {cbParam1, cbParam2, cbParam3, cbParam4, cbParam5}) {
+            if (!cb) continue;
+            cb->blockSignals(true);
+            cb->clear();
+            cb->addItem("不显示");
+            for (const auto &h : m_csvHeaders)
+                cb->addItem(h);
+            cb->blockSignals(false);
         }
-    }
-    // 纯CSV/TXT文件：读首行表头 + 剩余行数据
-    else {
-        QFile f(filePath);
-        if (!f.open(QIODevice::ReadOnly)) return;
-        QByteArray raw = f.readAll();
-        f.close();
-        if (raw.contains('\0')) return;
 
-        // 尝试 UTF-8（含 BOM）→ GBK/本地编码回退
-        QString content;
-        if (raw.size() >= 3 && (quint8)raw[0] == 0xEF && (quint8)raw[1] == 0xBB && (quint8)raw[2] == 0xBF)
-            content = QString::fromUtf8(raw.constData() + 3, raw.size() - 3);
-        else
-            content = QString::fromUtf8(raw);
-        if (content.isEmpty() || content.contains(QChar(0xFFFD)))  // 0xFFFD = UTF-8 替换字符 → 尝试本地编码
-            content = QString::fromLocal8Bit(raw);
+        progress->close();
+        progress->deleteLater();
+        thread->quit();
+        thread->wait(1000);
+        thread->deleteLater();
+        worker->deleteLater();
+        m_loadThread = nullptr;
+    });
 
-        // 按行拆分（兼容 Windows \r\n）
-        QStringList lines = content.split('\n');
-        for (int i = lines.size() - 1; i >= 0; i--) {
-            lines[i] = lines[i].remove('\r').trimmed();
-            if (lines[i].isEmpty()) lines.removeAt(i);
-        }
-        if (lines.isEmpty()) return;
+    connect(progress, &QProgressDialog::canceled, this, [thread]() {
+        thread->requestInterruption();
+    });
 
-        m_csvHeaders = lines[0].split(',');
-        for (auto &h : m_csvHeaders) h = h.trimmed();
-        qDebug() << "CSV headers:" << m_csvHeaders;
-
-        int rowCount = 0;
-        for (int i = 1; i < lines.size(); i++) {
-            QStringList vals = lines[i].split(',');
-            if (vals.size() != m_csvHeaders.size()) {
-                qDebug() << "CSV skip row" << i << "col mismatch:" << vals.size() << "vs" << m_csvHeaders.size();
-                continue;
-            }
-            for (int col = 0; col < m_csvHeaders.size(); col++) {
-                bool ok;
-                double v = vals[col].trimmed().toDouble(&ok);
-                if (ok)
-                    m_plotData[m_csvHeaders[col]].append(v);
-            }
-            rowCount++;
-        }
-        qDebug() << "CSV parsed" << rowCount << "rows";
-        for (auto it = m_plotData.cbegin(); it != m_plotData.cend(); ++it)
-            qDebug() << "  column" << it.key() << ":" << it.value().size() << "values";
-    }
-
-    // 填充下拉框（不连接信号，已在构造函数连接）
-    for (auto *cb : {cbParam1, cbParam2, cbParam3, cbParam4, cbParam5}) {
-        if (!cb) continue;
-        cb->blockSignals(true);
-        cb->clear();
-        cb->addItem("不显示");
-        for (const auto &h : m_csvHeaders)
-            cb->addItem(h);
-        cb->blockSignals(false);
-    }
+    thread->start();
+    QMetaObject::invokeMethod(worker, "loadFile", Qt::QueuedConnection, Q_ARG(QString, filePath));
 }
 
 // 根据下拉框选择绘制曲线（时序曲线）
@@ -575,3 +491,6 @@ QWidget *PostAnalysisDialog::createParamPanel()
 
     return panel;
 }
+
+
+

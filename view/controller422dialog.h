@@ -22,6 +22,9 @@ public:
     explicit Controller422Dialog(QWidget *parent = nullptr);
     ~Controller422Dialog();
 
+    // 自动发送指令序列：开锁→火工品解控→火工品解保→火工品非解控→关锁，间隔1秒
+    void startAutoSequence(const QString &channelId);
+
 private slots:
     void onMatrixButtonClicked();
     void onFrameClicked();

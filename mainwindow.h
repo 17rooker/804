@@ -17,6 +17,9 @@
 
 #include "src/DataProcess/DataAnalysis/FrameDataAnalysis.h"
 #include "src/Common/CommTypes.h"
+#include "src/CustomMessage/IMessage.h"
+#include "src/CustomMessage/DataInteractionManager.h"
+#include "src/CustomEvent/InitiativeMsgEvent.h"
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
@@ -25,7 +28,7 @@ QT_END_NAMESPACE
 class FrameDataAnalysis;
 
 
-class MainWindow : public QMainWindow
+class MainWindow : public QMainWindow, public IMessage
 {
     Q_OBJECT
 
@@ -33,6 +36,8 @@ public:
     MainWindow(QWidget *parent = nullptr);
     ~MainWindow();
     // IMessage::condition() — 返回当前窗体是否可见
+    bool condition() override { return true; }
+    void onMessage(IEvent* pEvent) override;
 
 private slots:
     void updateTime();        // 更新左上角时间
@@ -54,6 +59,11 @@ private:
     int m_testSeconds;        // 测试秒数计数
     QLabel *m_lblCecLight;
     QTextEdit *m_logText = nullptr;
+
+    // TCP远控自动序列状态
+    bool m_cecConnected = false;           // 测发控TCP已连接
+    bool m_mechanismReady = false;         // 机构准备好
+    bool m_autoSequenceTriggered = false;  // 自动序列已触发
 
     // 新增：全局唯一的422指令弹窗实例
     Controller422Dialog *m_controller422Dialog;
