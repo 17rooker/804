@@ -35,6 +35,8 @@ public:
     void addErrorCount(FrameType type);    // 增加错帧数
     void addMissCount(FrameType type);     // 增加漏帧数
     void appendRawFrameText(const QString &text); // 追加遥测口原帧文本
+    // 接收A5帧统计数据（由EmissionTab::onMessage调用）
+    void onA5FrameReceived(quint8 fpgaId, quint32 frameCount);
 
 private:
     // 初始化UI布局
@@ -48,6 +50,7 @@ private:
 
 private:
     QMap<FrameType, FrameStats> m_frameStats; // 帧统计数据
+    QMap<FrameType, quint32> m_lastFrameCounts; // 每种帧类型上一次的FrameCount
     QMap<FrameType, QLineEdit*> m_frameCountEdits; // 帧计数输入框
     QMap<FrameType, QLineEdit*> m_errorCountEdits; // 错帧计数输入框
     QMap<FrameType, QLineEdit*> m_missCountEdits;   // 漏帧计数输入框

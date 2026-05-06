@@ -81,7 +81,13 @@ void EmissionTab::onMessage(IEvent *pEvent)
         {
             // 发给发射帧界面：先检查指针非空
             if (m_launchFrameDialog) {
-                m_launchFrameDialog->setParam(param); // 传const引用，高性能
+                m_launchFrameDialog->setParam(param);
+            }
+            // 接收状态统计：FPGAID + FrameCount 连续性检测
+            if (m_frameStatsWidget && param.mapParams.contains("FPGAID") && param.mapParams.contains("FrameCount")) {
+                quint8 fpgaId = param.mapParams["FPGAID"].varParaValue.toUInt();
+                quint32 frameCount = param.mapParams["FrameCount"].varParaValue.toUInt();
+                m_frameStatsWidget->onA5FrameReceived(fpgaId, frameCount);
             }
         }
         else
@@ -267,7 +273,7 @@ void EmissionTab::setupUI()
     m_tabWidget = new QTabWidget(this);
 
     // 创建标签页
-    FrameStatisticsWidget *tabReceive = new FrameStatisticsWidget(this);
+    m_frameStatsWidget = new FrameStatisticsWidget(this);
     if (!m_launchFrameDialog) {
         m_launchFrameDialog = new LaunchFrameDialog(this);
     }
@@ -278,7 +284,7 @@ void EmissionTab::setupUI()
                    : (m_controllerName == "控制器2") ? "serial_F" : "serial_G";
         m_copyFrameDialog->setChannelId(ch);
     }
-    m_tabWidget->addTab(tabReceive, tr("接收状态"));
+    m_tabWidget->addTab(m_frameStatsWidget, tr("接收状态"));
     m_tabWidget->addTab(m_launchFrameDialog, tr("发射帧"));
     m_tabWidget->addTab(m_copyFrameDialog, tr("测试帧"));
 

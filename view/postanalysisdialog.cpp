@@ -26,9 +26,10 @@ PostAnalysisDialog::PostAnalysisDialog(QWidget *parent)
     setWindowTitle("事后分析");
     resize(1200, 700); // 适配截图的宽高比例
     setStyleSheet("QDialog { background-color: #C8C8F0; }"  // 匹配截图的淡紫色背景
-                  "QPushButton { font-size: 12px; }"
-                  "QLabel { font-size: 12px; }"
-                  "QLineEdit { font-size: 12px; }");
+                  "QPushButton { font-size: 11px; }"
+                  "QLabel { font-size: 11px; }"
+                  "QLineEdit { font-size: 11px; }"
+                  "QComboBox { font-size: 10px; }");
 
     // 主布局：垂直布局（整体）
     auto *mainLayout = new QVBoxLayout(this);
@@ -529,7 +530,7 @@ QWidget *PostAnalysisDialog::createParamPanel()
         gridLayout->addWidget(label, row, col);
         if (isCombo) {
             auto *cb = new QComboBox(panel);
-            cb->setFixedSize(100, 25);
+            cb->setFixedSize(120, 25);
             cb->addItem("不显示");
             w = cb;
         } else {

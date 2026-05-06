@@ -1,6 +1,7 @@
 ﻿#include "CommDataProcessor.h"
 #include "src/DataProcess/StaticDataProcess.h"
 #include "src/DataProcess/ControlDataProcess.h"
+#include "src/CustomMessage/DataInteractionManager.h"
 #include <QDebug>
 #include <algorithm>
 
@@ -166,19 +167,7 @@ void CommDataProcessor::process(const STPackage& stPackage) {
 void CommDataProcessor::dataProcessing(const STParamInfo& stParam)
 {
     STParamInfo stRecvParam =std::move(stParam);
-    // switch (stRecvParam.eDataType) {
-    // case EDataType::E_Static:
-
-    // {
-    //     m_processors[EProcessCategory::E_StaticData]->dataProcess(stRecvParam);
-    //     break;
-    // }
-
-    // case EDataType::E_ControlRes:
-    //     m_processors[EProcessCategory::E_ControlData]->dataProcess(stRecvParam);
-    //     break;
-    // default:
-    //     break;
-    // }
+    // 投递到消息系统，由 DataInteractionManager 分发给所有 IMessage 订阅者
+    DataInteractionManager::getInstance().postStaticMsg(stRecvParam);
 }
 

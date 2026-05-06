@@ -26,6 +26,7 @@ class Serial422Dialog;
 class CopyFrameDialog;  // 新增：测试帧界面前置声明
 class wavechart;        // 新增：波形图界面前置声明
 class ControllerPanel ;
+class FrameStatisticsWidget;
 class EmissionTab : public QDialog,public IMessage
 {
     Q_OBJECT
@@ -62,6 +63,7 @@ private:
     LaunchProcessDialog*m_LaunchProcessDialog;
     CopyFrameDialog *m_copyFrameDialog;    // 新增：测试帧界面指针
     wavechart *m_waveChart;                // 新增：波形图界面指针
+    FrameStatisticsWidget *m_frameStatsWidget; // 新增：接收状态统计界面
     // 保存422指令弹窗实例指针
     Controller422Dialog *m_controller422Dialog;
     // 保存422设置弹窗实例指针

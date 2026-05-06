@@ -148,3 +148,41 @@ void FrameStatisticsWidget::appendRawFrameText(const QString &text)
     int lineCount = m_rawFrameTextEdit->document()->lineCount();
     m_rawFrameLabel->setText(QString("遥测口原帧 %1").arg(lineCount - 1)); // 减1是因为默认空行
 }
+
+// FPGA ID 字节 → FrameType 枚举
+static FrameType fpgaIdToType(quint8 id)
+{
+    switch (id) {
+    case 0xAA: return FrameAA;
+    case 0xBB: return FrameBB;
+    case 0xCC: return FrameCC;
+    default:   return FrameDE;
+    }
+}
+
+// 接收 A5 帧的 FPGAID + FrameCount，更新统计
+void FrameStatisticsWidget::onA5FrameReceived(quint8 fpgaId, quint32 frameCount)
+{
+    FrameType type = fpgaIdToType(fpgaId);
+
+    if (m_lastFrameCounts.contains(type)) {
+        quint32 last = m_lastFrameCounts[type];
+
+        if (frameCount == last + 1 || (last == 0xFFFFFFFF && frameCount == 0)) {
+            // 正常连续帧（含回绕）
+        } else if (frameCount == last) {
+            // 重复帧 → 错帧
+            m_frameStats[type].errorCount++;
+        } else if (frameCount > last) {
+            // 跳变 → 漏帧
+            m_frameStats[type].missCount += (frameCount - last - 1);
+        } else {
+            // 帧计数倒退 → 错帧
+            m_frameStats[type].errorCount++;
+        }
+    }
+
+    m_frameStats[type].frameCount++;
+    m_lastFrameCounts[type] = frameCount;
+    updateStatsDisplay();
+}

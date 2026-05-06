@@ -5,16 +5,13 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Build & Run
 
 ```bash
-# Build (debug)
+# Build (debug) — 增量编译即可，不要 clean
 qmake Restricting_Release_Control.pro
-mingw32-make -j$(nproc)
+mingw32-make -j4
 
 # Build (release)
 qmake Restricting_Release_Control.pro "CONFIG+=release"
-mingw32-make -j$(nproc)
-
-# Clean
-mingw32-make clean
+mingw32-make -j4
 
 # Output: bin/Restricting_Release_Control.exe
 # Config: bin/config/Info.ini loaded at runtime
